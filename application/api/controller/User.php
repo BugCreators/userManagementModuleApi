@@ -3,62 +3,73 @@ namespace app\api\controller;
 
 use app\api\controller\Api;
 use app\api\model\User as UserModel;
-use app\api\model\Role as RoleModel;
-use app\api\model\College as CollegeModel;
-use app\api\model\Major as MajorModel;
-use app\api\model\VClass as ClassModel;
 use think\Controller;
-use think\Db;
 
 class User extends Controller
 {
      /**
      * 获取系统设置
+     * @method [GET]
      */
     public function getSysSetting()
     {
-        $api = new Api();
+        $api = new Api;
         $data = ['schoolName' => '韶关学院'];
         return $api->return_msg(200, '', $data);
     }
 
     /**
      * 登陆接口
+     * @method [POST]
      * @param [array] $data
-     * @param [string] $data['number'] [账户名]
-     * @param [string] $data['password'] [密码]
+     * @param [int] $number [账户名/学号/工号]
+     * @param [string] $password [密码]
      */
     public function login()
     {
-        $api = new Api();
-        // $data = input("post.");
-        $data = input();
-        if(!$data['number'] || !$data['password']){
-            return $api->return_msg(400, '账户或密码为空！');
-        };
+        $api = new Api;
+        $number = input('number');
+        $password = input('password');
+
+        if (!$number || !$password) {
+            return $api->msg_401();
+        }
         
-        $userModel = new UserModel();
-        $user = $userModel->where('number', $data['number'])
+        $userModel = new UserModel;
+        $user = $userModel->where('number', $number)
             ->find();
-        if(!$user || $data['password'] !== $user['password']){
+        if (!$user || $password !== $user['password']) {
             return $api->return_msg(401, '账户或密码错误！');
         };
+        if ($user['deleted']) {
+            return $api->return_msg(402, '该用户被冻结，请联系管理员！');
+        }
 
         $user->roleName = $user->role->name;
 
         $token = $api->lssue($user['number']);
         $user->token = $token;
 
-        $user->hidden(['id', 'lastip', 'deleted', 'roleid']);
+        $user->hidden([
+            'id',
+            'lastip',
+            'deleted',
+            'v_class_id',
+            'role_id',
+            'role',
+            'username',
+            'url'
+        ]);
         
         return $api->return_msg(200, '', $user);
     }
 
     /**
      * 获取用户详情
+     * @method [POST]
      * @param [array] $data 
-     * @param [string] $data['number'] [账户名]
-     * @param [string] $data['token'] [Token]
+     * @param [int] $number [账户名/学号/工号]
+     * @param [string] $token [Token]
      */
     public function getUserInfo()
     {
@@ -69,43 +80,86 @@ class User extends Controller
         //     dump($explain);
         // });
 
-        $data = input('get.');
-        $api = new Api();
-        if(!$data['number']) {
-            return $api->return_msg(400, '用户不存在！');
-        };
-
-        $tokenData = $api->verification($data['token']);
-        if ($tokenData['code'] !== 200) {
-            return $tokenData;
-        } else if ($tokenData['data']->number != $data['number']) {
-            return $api->return_msg(401, '参数错误！');
+        $api = new Api;
+        $number = input('post.number');
+        $token = input('post.token');
+        
+        if (!$number || !$token) {
+            return $api->msg_401();
         }
 
-        $userModel = new UserModel();
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        } elseif ($tokenData['data']->number != $number) {
+            return $api->msg_401();
+        }
+
+        $userModel = new UserModel;
         $user = $userModel
             ->field('realname, number, phone, v_class_id, email, sex, address, description')
-            ->where('number', $data['number'])
+            ->where('number', $number)
             ->find();
 
-        $user->class = $user->vclass->grade . $user->vclass->name;
-        $user->college = $user->vclass->major->college->name;
-
+        if ($user['v_class_id']) {
+            $user->class = $user->vclass->grade . $user->vclass->name;
+            $user->college = $user->vclass->major->college->name;
+        }
+        
         $user->hidden(['v_class_id', 'vclass']);
 
         return $api->return_msg(200, '', $user);
     }
 
     /**
-     * 修改个人信息
+     * 个人信息页修改信息
+     * @method [POST]
      * @param [array] $data 
-     * @param [string] $data['number'] [账户名]
-     * @param [string] $data['token'] [Token]
+     * @param [int] $number [账户名/学号/工号]
+     * @param [string] $token [Token]
+     * @param [string] $email [邮箱]
+     * @param [string] $sex [性别]
+     * @param [string] $address [地址]
+     * @param [string] $description [个人描述]
      */
-    public function changeUserInfo()
+    public function changeUserInfoByUser()
     {
-        $data = input('get.');
-        $api = new Api();
+        $api = new Api;
+        $number = input('post.number');
+        $email = input('post.email');
+        $sex = input('post.sex');
+        $address = input('post.address');
+        $description = input('post.description');
+        $token = input('post.token');
+
+        if (!$number || !$email || $sex == '' || !$address || !$description || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        } elseif ($tokenData['data']->number != $number) {
+            return $api->msg_401();
+        }
+
+        try {
+            $userModel = new UserModel;
+            $result = $userModel
+                ->save([
+                    'email' => $email,
+                    'sex' => (int)$sex,
+                    'address' => $address,
+                    'description' => $description
+                ], ['number' => $number]);
+        } catch (\Exception $e) {
+            return $api->return_msg(500, '系统出错，请稍后重试！');
+        };
+        if ($result) {
+            return $api->return_msg(200, '更新成功！');
+        } else {
+            return $api->return_msg(401, '更新失败，数据未改动！');
+        }
     }
 }
 ?>

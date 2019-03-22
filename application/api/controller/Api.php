@@ -12,7 +12,7 @@ class Api
     public function lssue($number)
     {
         if (!$number) {
-            return $this->return_msg(400, '参数错误！');
+            return $this->msg_401();
         }
         $key = 'avue@777';
         $time = time();
@@ -38,14 +38,16 @@ class Api
 		try {
             JWT::$leeway = 60;                                //当前时间减去60，把时间留点余地
             $decoded = JWT::decode($jwt, $key, ['HS256']);    //HS256方式，这里要和签发的时候对应
-        } catch (\Firebase\JWT\SignatureInvalidException $e) {  //签名不正确
-            return $this->return_msg(401, '参数错误！');
-        } catch (\DomainException $e) {                      //其他错误
-            return $this->return_msg(401, '参数错误！');
-        }catch (\Firebase\JWT\ExpiredException $e) {            // token过期
+        } 
+        // catch (\Firebase\JWT\SignatureInvalidException $e) {  //签名不正确
+        //     return $this->return_msg(401, '参数错误！' . $e->getMessage());
+        // } catch (\DomainException $e) {                      //其他错误
+        //     return $this->return_msg(401, '参数错误！' . $e->getMessage());
+        // }
+        catch (\Firebase\JWT\ExpiredException $e) {            // token过期
             return $this->return_msg(402, '会话已过期，请重新登陆！');
         } catch (\Exception $e) {                                 //其他错误
-            return $this->return_msg(500, '系统错误，请联系管理员！');
+            return $this->msg_401();
         }
         return $this->return_msg(200, '', $decoded->data);
     }
@@ -59,10 +61,9 @@ class Api
     */
     /**
      * 结果码
-     * 400: 没有接收到参数
-     * 401: 参数在数据库中不存在
+     * 401: 参数错误
      * 402: token过期
-     * 403: 
+     * 403: 用户被冻结
      * 404：
      */
     public function return_msg($code, $msg = '', $data = [])
@@ -74,6 +75,16 @@ class Api
         /*********** 返回信息并终止脚本  ***********/
         return $return_data;
         die;
+    }
+
+    public function msg_401()
+    {
+        return $this->return_msg(401, '参数错误！');
+    }
+
+    public function msg_500() 
+    {
+        return $this->return_msg(500, '系统出错，请稍后重试！');
     }
 }
 ?>

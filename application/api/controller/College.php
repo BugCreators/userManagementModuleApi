@@ -8,15 +8,16 @@ class College
 {
     /**
      * 首页获取学院列表
+     * @method [GET] [POST]
      */
     public function getCollegeList()
     {
-        $api = new Api();
+        $api = new Api;
         try {
-            $college = new CollegeModel();
+            $college = new CollegeModel;
             $list = $college->order('id')
-              ->field('id, logo, name')
-              ->select();
+                ->field('id, logo, name')
+                ->select();
         } catch (\Exception $e){
             return $api->return_msg(500, '系统错误，请联系管理员！');
             exit;
@@ -26,17 +27,19 @@ class College
 
     /**
      * 获取学院简介
+     * @method [GET]
      * @param [int] $id [学院id]
      */
     public function getCollegeDetail()
     {
-        $api = new Api();
-        $id = input('id');
+        $api = new Api;
+        $id = input('get.id');
         if (!$id) {
             return $api->return_msg(400, '学院id为空！');
         }
+        
         try {
-            $college = new CollegeModel();
+            $college = new CollegeModel;
             $data = $college->where('id', $id)
                 ->find();
             $data->major;

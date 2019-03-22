@@ -5,9 +5,9 @@ use think\Model;
 
 class User extends Model
 {
-    protected $auto = ['lastip'];
+    protected $auto = ['last_ip'];
 
-    protected function setIpAttr()
+    protected function setLastIpAttr()
     {
         return request()->ip();
     }
