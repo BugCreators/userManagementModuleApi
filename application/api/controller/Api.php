@@ -2,6 +2,7 @@
 namespace app\api\controller;
 
 use \Firebase\JWT\JWT;
+use app\api\model\User as UserModel;
 
 class Api
 {
@@ -9,7 +10,7 @@ class Api
      * 签发 Token
      * @param  [array] $data [用户信息]
      */
-    public function lssue($number)
+    public function lssue($number, $time)
     {
         if (!$number) {
             return $this->msg_401();
@@ -21,7 +22,8 @@ class Api
            	'iat' => $time,                  //签发时间
            	'exp' => $time + 3600 * 10,      //过期时间,这里设置10个小时
             'data' => [                      //自定义信息，不要定义敏感信息
-                'number' => $number
+                'number' => $number,
+                'last_login_time' => $time
             ]
         ];
         return JWT::encode($token, $key);    //输出Token
@@ -31,7 +33,7 @@ class Api
      * 解析 Token
      * @param  [string] $jwt [签发的token]
      */
-    public function verification($jwt)
+    public function verification($jwt, $number = null)
     {
         $key = 'avue@777';                                    //key要和签发的时候一样
 
@@ -49,6 +51,24 @@ class Api
         } catch (\Exception $e) {                                 //其他错误
             return $this->msg_401();
         }
+
+        $data = $decoded->data;
+
+        if ($number != null && $data->number != $number) {
+            return $this->msg_401();
+        }
+
+        $userModel = new UserModel;
+        $user = $userModel->field('number, last_login_time')
+            ->where('number', $data->number)
+            ->find();
+        if ($data->number != $data->number) {
+            return $this->msg_401(401, '该用户不存在！');
+        }
+        if ($data->last_login_time != $user->last_login_time) {
+            return $this->return_msg(402, '会话已过期，请重新登陆！');
+        }
+
         return $this->return_msg(200, '', $decoded->data);
     }
 

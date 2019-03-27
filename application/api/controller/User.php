@@ -36,7 +36,8 @@ class User extends Controller
         }
         
         $userModel = new UserModel;
-        $user = $userModel->where('number', $number)
+        $user = $userModel->field('number, realname, password, deleted, role_id')
+            ->where('number', $number)
             ->find();
         if (!$user || $password !== $user['password']) {
             return $api->return_msg(401, '账户或密码错误！');
@@ -45,22 +46,23 @@ class User extends Controller
             return $api->return_msg(402, '该用户被冻结，请联系管理员！');
         }
 
+        $time = time();
+        $user->save(['last_login_time' => $time]);
+
         $user->roleName = $user->role->name;
 
-        $token = $api->lssue($user['number']);
+
+        $user->intoBackstage = $user->role->intoBackstage($user->role_id);
+
+        $token = $api->lssue($user['number'], $time);
         $user->token = $token;
 
         $user->hidden([
-            'id',
-            'lastip',
             'deleted',
-            'v_class_id',
             'role_id',
-            'role',
-            'username',
-            'url'
+            'role'
         ]);
-        
+
         return $api->return_msg(200, '', $user);
     }
 
@@ -81,18 +83,16 @@ class User extends Controller
         // });
 
         $api = new Api;
-        $number = input('post.number');
-        $token = input('post.token');
+        $number = input('number');
+        $token = input('token');
         
         if (!$number || !$token) {
             return $api->msg_401();
         }
 
-        $tokenData = $api->verification($token);
+        $tokenData = $api->verification($token, $number);
         if ($tokenData['code'] !== 200) {
             return $tokenData;
-        } elseif ($tokenData['data']->number != $number) {
-            return $api->msg_401();
         }
 
         $userModel = new UserModel;
@@ -136,11 +136,9 @@ class User extends Controller
             return $api->msg_401();
         }
 
-        $tokenData = $api->verification($token);
+        $tokenData = $api->verification($token, $number);
         if ($tokenData['code'] !== 200) {
             return $tokenData;
-        } elseif ($tokenData['data']->number != $number) {
-            return $api->msg_401();
         }
 
         try {
@@ -153,13 +151,134 @@ class User extends Controller
                     'description' => $description
                 ], ['number' => $number]);
         } catch (\Exception $e) {
-            return $api->return_msg(500, '系统出错，请稍后重试！');
+            return $api->msg_500();
         };
         if ($result) {
-            return $api->return_msg(200, '更新成功！');
+            return $api->return_msg(200, '修改成功！');
         } else {
-            return $api->return_msg(401, '更新失败，数据未改动！');
+            return $api->return_msg(401, '修改失败，数据未改动！');
         }
+    }
+
+    /**
+     * 用户修改密码
+     * @method [POST]
+     * @param [string] $oldPw [旧密码]
+     * @param [string] $newPw [新密码]
+     * @param [string] $confirmPw [确认密码]
+     * @param [string] $number [账号]
+     * @param [string] $token [Token]
+     */
+    public function changePasswordByUser()
+    {
+        $api = new Api;
+        $oldPw = input('post.oldPw');
+        $newPw = input('post.newPw');
+        $confirmPw = input('post.confirmPw');
+        $number = input('post.number');
+        $token = input('post.token');
+
+        if (!$oldPw || !$newPw || !$confirmPw || $newPw != $confirmPw || !$number || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token, $number);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        }
+
+        try {
+            $userModel = new UserModel;
+            $user = $userModel
+                ->where('number', $number)
+                ->find();
+            if ($oldPw !== $user['password']) {
+                return $api->return_msg(401, "密码错误！");
+            };
+            $result = $user->save([
+                'password' => $newPw
+            ]);
+        } catch (\Exception $e) {
+            return $api->msg_500();
+        }
+        if ($result) {
+            return $api->return_msg(200, "修改成功！请重新登录！");
+        } else {
+            return $api->return_msg(401, '修改失败，数据未改动！');
+        }
+    }
+
+    /**
+     * 获取进入后台权限
+     * @method [GET]
+     * @param [string] $token [Token]
+     */
+    public function getIntoBackstage()
+    {
+        $api = new Api;
+        $token = input('get.token');
+
+        if (!$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $userModel = new UserModel;
+            $user = $userModel->field('role_id')
+                ->where('number', $tokenData['data']->number)
+                ->find();
+            $user->intoBackstage = $user->role->intoBackstage($user->role_id);
+        } catch (\Exception $e) {
+            return $api->msg_500();
+        };
+
+        $user->hidden(['role', 'role_id']);
+
+        return $api->return_msg(200, '', $user);
+    }
+
+    /**
+     * 获取查询权限
+     * @method [GET]
+     * @param [string] $token [Token]
+     */
+    public function getSelectAuthority()
+    {
+        $api = new Api;
+        $token = input('get.token');
+
+        if (!$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $userModel = new UserModel;
+            $user = $userModel->field('role_id')
+                ->where('number', $tokenData['data']->number)
+                ->find();
+            $selectAuthority = $user->role->capabilities;
+        } catch (\Exception $e) {
+            return $api->msg_500();
+        };
+
+        $data = [];
+        foreach($selectAuthority as $authority) {
+            if(strpos($authority->name, 'select_') === 0) {
+                $data[$authority->name] = $authority->pivot->permission;
+            }
+        }
+
+        return $api->return_msg(200, '', $data);
     }
 }
 ?>

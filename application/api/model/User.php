@@ -23,7 +23,7 @@ class User extends Model
     {
         return $this
             ->hasOne('Role', 'id', 'role_id')
-            ->field('name');
+            ->field('id, name');
     }
 }
 ?>

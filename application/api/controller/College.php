@@ -19,7 +19,7 @@ class College
                 ->field('id, logo, name')
                 ->select();
         } catch (\Exception $e){
-            return $api->return_msg(500, '系统错误，请联系管理员！');
+            return $api->msg_500();
             exit;
         };
         return $api->return_msg(200, '', $list);
@@ -44,7 +44,7 @@ class College
                 ->find();
             $data->major;
         } catch (\Exception $e){
-            return $api->return_msg(500, '系统错误，请联系管理员！');
+            return $api->msg_500();
             exit;
         }
         if (!$data) {
@@ -53,5 +53,57 @@ class College
             return $api->return_msg(200, '', $data);
         }
     }
+
+    /****************后台接口 BEGIN*******************/
+    /**
+     * 获取学院列表
+     * @method [POST]
+     * @param [int] $pageSize []
+     * @param [int] $pageIndex []
+     * @param [string] $collegeName [学院名]
+     * @param [string] $token [Token]
+     */
+    public function getCollegeListByAdmin()
+    {
+        $api = new Api;
+        $pageSize = input('post.pageSize');
+        $pageIndex = input('post.pageIndex');
+        $collegeName = input('post.searchValue.name');
+        $token = input('post.token');
+
+        if (!$pageSize || !$pageIndex) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $college = new CollegeModel;
+            if ($collegeName) {
+                $list = $college->where('name', $collegeName)
+                ->select();
+                $count = count($list);
+            } else {
+                $count = $college->count();
+                $list = $college->where('id', '>', $pageSize * ($pageIndex - 1))
+                    ->limit($pageSize)
+                    ->order('id')
+                    ->select();
+            }    
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->return_msg(200, '', [
+            'count' => $count,
+            'list' => $list
+        ]);
+    }
+
+
+    /******************** END ***********************/
 }
 ?>
