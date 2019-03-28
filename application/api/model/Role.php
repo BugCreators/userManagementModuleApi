@@ -6,30 +6,21 @@ use think\Model;
 class Role extends Model
 {
     // 角色表与角色_权限表关联
-    public function roleCapabilities()
+    public function roleAuthority()
     {
-        return $this->hasMany('role_capabilities', 'role_id');
+        return $this->hasMany('role_authority', 'role_id');
     }
 
     // 角色表与权限表关联
-    public function capabilities()
+    public function authority()
     {
-        return $this->belongsToMany('Capabilities', 'role_capabilities', 'capabilities_id', 'role_id');
+        return $this->belongsToMany('Authority', 'role_authority', 'authority_id', 'role_id');
     }
 
-    public function intoBackstage($roleId)
+    // 通过权限名搜索权限
+    public function authorityByName($name)
     {
-        return $this->roleCapabilities()
-            ->where('role_id', $roleId)
-            ->find()
-            ->permission;
-    }
-
-    public function selectCapabilities($roleId)
-    {
-        return $this->capabilities()
-            ->where('name', 'LIKE', 'select_')
-            ->select();
+        return $this->authority()->where('name', $name)->find();
     }
 }
 ?>

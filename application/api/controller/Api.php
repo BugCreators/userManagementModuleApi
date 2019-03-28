@@ -85,6 +85,7 @@ class Api
      * 402: token过期
      * 403: 用户被冻结
      * 404：
+     * 405: 没有权限
      */
     public function return_msg($code, $msg = '', $data = [])
     {
@@ -97,14 +98,41 @@ class Api
         die;
     }
 
+    public function msg_200($data)
+    {
+        return $this->return_msg(200, '', $data);
+    }
+
     public function msg_401()
     {
         return $this->return_msg(401, '参数错误！');
     }
 
+    public function msg_405()
+    {
+        return $this->return_msg(405, '当前用户无此权限！');
+    }
+
     public function msg_500() 
     {
         return $this->return_msg(500, '系统出错，请稍后重试！');
+    }
+
+    /**
+     * 判断是否具有权限
+     * @param [string] $number [用户账号]
+     * @param [string] $authorityName [权限名]
+     */
+    public function authority($number, $authorityName)
+    {
+        $userModel = new UserModel;
+        $user = $userModel->field('role_id')
+            ->where('number', $number)
+            ->find();
+        $authority = $user->role
+            ->authorityByName($authorityName)
+            ->pivot->permission;
+        return $authority;
     }
 }
 ?>

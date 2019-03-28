@@ -15,7 +15,7 @@ class User extends Controller
     {
         $api = new Api;
         $data = ['schoolName' => '韶关学院'];
-        return $api->return_msg(200, '', $data);
+        return $api->msg_200($data);
     }
 
     /**
@@ -51,8 +51,9 @@ class User extends Controller
 
         $user->roleName = $user->role->name;
 
-
-        $user->intoBackstage = $user->role->intoBackstage($user->role_id);
+        $user->intoBackstage = $user->role
+            ->authorityByName('into_backstage')
+            ->pivot->permission;
 
         $token = $api->lssue($user['number'], $time);
         $user->token = $token;
@@ -63,7 +64,7 @@ class User extends Controller
             'role'
         ]);
 
-        return $api->return_msg(200, '', $user);
+        return $api->msg_200($user);
     }
 
     /**
@@ -108,7 +109,7 @@ class User extends Controller
         
         $user->hidden(['v_class_id', 'vclass']);
 
-        return $api->return_msg(200, '', $user);
+        return $api->mag_200($user);
     }
 
     /**
@@ -232,14 +233,16 @@ class User extends Controller
             $user = $userModel->field('role_id')
                 ->where('number', $tokenData['data']->number)
                 ->find();
-            $user->intoBackstage = $user->role->intoBackstage($user->role_id);
+            $user->intoBackstage = $user->role
+                ->authorityByName("into_backstage")
+                ->pivot->permission;
         } catch (\Exception $e) {
             return $api->msg_500();
         };
 
         $user->hidden(['role', 'role_id']);
 
-        return $api->return_msg(200, '', $user);
+        return $api->msg_200($user);
     }
 
     /**
@@ -266,7 +269,7 @@ class User extends Controller
             $user = $userModel->field('role_id')
                 ->where('number', $tokenData['data']->number)
                 ->find();
-            $selectAuthority = $user->role->capabilities;
+            $selectAuthority = $user->role->authority;
         } catch (\Exception $e) {
             return $api->msg_500();
         };
@@ -278,7 +281,7 @@ class User extends Controller
             }
         }
 
-        return $api->return_msg(200, '', $data);
+        return $api->msg_200($data);
     }
 }
 ?>
