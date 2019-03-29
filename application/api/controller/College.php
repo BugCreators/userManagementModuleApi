@@ -112,6 +112,42 @@ class College
     }
 
     /**
+     * 获取学院列表
+     * @method [POST]
+     * @param [string] $token [Token]
+     */
+    public function getAllCollegeList()
+    {
+        $api = new Api;
+        $token = input('post.token');
+
+        if (!$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'select_college');
+            if ($isPermission == 0) {
+                return $api->msg_405();
+            }
+
+            $college = new CollegeModel;
+            $count = $college->count();
+            $list = $college->field('name as 学院名, en_name as 英文名, website as 网站链接, description as 学院描述')
+                ->select();
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->msg_200($list);
+    }
+
+    /**
      * 获取学院详情
      * @method [GET]
      * @param [int] $collegeId [学院ID]
@@ -160,6 +196,143 @@ class College
     }
 
     /**
+     * 获取院徽
+     * @method [GET]
+     * @param [int] $collegeId [学院ID]
+     * @param [string] $token [Token]
+     */
+    public function getCollegeLogo()
+    {
+        $api = new Api;
+        $collegeId = input('get.id');
+        $token = input('get.token');
+        
+        if (!$collegeId || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'select_college');
+            if ($isPermission == 0) {
+                return $api->msg_405();
+            }
+
+            $college = new CollegeModel;
+            $data = $college->field('logo as url')
+                ->where('id', $collegeId)
+                ->find();
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->msg_200($data);
+    }
+
+    /**
+     * 上传院徽
+     * @method [POST]
+     * @param [int] $logoFile [LOGO文件]
+     * @param [string] $collegeId [学院ID]
+     * @param [string] $token [Token]
+     */
+    public function changeCollegeLogo()
+    {
+        $api = new Api;
+        $logoFile = request()->file('image');
+        $collegeId = input('post.id');
+        $token = input('post.token');
+
+        if (!$collegeId || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'update_college');
+            if ($isPermission == 0) {
+                return $api->msg_405();
+            }
+
+            $info = $logoFile->validate([
+                'size' => 1024 * 1024 * 2,
+                'ext' => 'jpg,png'
+                ])->move(ROOT_PATH . 'public' . DS . 'static' . DS . 'collegeLogo');
+            if($info){
+                $college = new CollegeModel;
+                $url = str_replace("\\", "/", DS . 'static' . DS . 'collegeLogo' . DS . $info->getSaveName());
+                $result = $college->save([
+                    'logo' => $url
+                ], ['id' => $collegeId]);
+            }else{
+                return $api->return_msg(401, $logoFile->getError());
+            }
+
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        if ($result) {
+            return $api->return_msg(200, '上传成功！', [
+                'url' => $url,
+                'id' => $collegeId
+            ]);
+        } else {
+            return $api->return_msg(401, '上传失败！');
+        }
+    }
+
+    /**
+     * 删除院徽
+     * @method [GET]
+     * @param [string] $collegeId [学院ID]
+     * @param [string] $token [Token]
+     */
+    public function deleteCollegeLogo()
+    {
+        $api = new Api;
+        $collegeId = input('post.id');
+        $token = input('post.token');
+
+        if (!$collegeId || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'update_college');
+            if ($isPermission == 0) {
+                return $api->msg_405();
+            }
+
+            $college = new CollegeModel;
+            $result = $college->save(['logo' => ""], ['id' => $collegeId]);
+
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        if ($result) {
+            return $api->return_msg(200, '删除成功！', $collegeId);
+        } else {
+            return $api->return_msg(401, '删除失败！');
+        }
+        
+    }
+
+    /**
      * 编辑学院信息
      * @method [POST]
      * @param [array] $data [学院详情]
@@ -193,7 +366,7 @@ class College
             }
 
             $college = new CollegeModel;
-            $result = $college->allowField(['name', 'english_name', 'website', 'description'])
+            $result = $college->allowField(['name', 'en_name', 'website', 'description'])
                 ->save($data, ['id' => $data['id']]);
 
             if ($result) {
@@ -244,7 +417,7 @@ class College
             $haveExisted = $college->where('name', $data['name'])
                 ->find();
             if($haveExisted) {
-                return $api->return_msg(401, "该学院已存在！请输入其它学院");
+                return $api->return_msg(401, '该学院已存在！请输入其它学院');
             }
 
             $result = $college->allowField(true)
@@ -289,14 +462,14 @@ class College
                 return $api->msg_405();
             }
 
-            $nameListOfData = array_map(function ($item) {
+            $nameListOfData = array_map(function($item) {
                 return $item['name'];
             }, $collegeList);
             $college = new CollegeModel;
             $nameListOfDataBase = $college->column('name');
             $allNameList = array_merge($nameListOfData, $nameListOfDataBase);
             if (count($allNameList) != count(array_unique($allNameList))) {
-                return $api->return_msg(401, "导入失败！部分学院名已存在");
+                return $api->return_msg(401, '导入失败！部分学院名已存在');
             };
 
             $result = $college->allowField(true)
