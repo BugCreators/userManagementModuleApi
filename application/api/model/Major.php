@@ -9,7 +9,14 @@ class Major extends Model
     {
         return $this
             ->hasOne("College", 'id', 'college_id')
-            ->field('name');
+            ->field('id, name');
+    }
+
+    public function collegeName()
+    {
+        return $this
+            ->hasOne("College", 'id', 'college_id')
+            ->field('name as 学院名');
     }
 }
 ?>
