@@ -3,6 +3,8 @@ namespace app\api\controller;
 
 use app\api\controller\Api;
 use app\api\model\User as UserModel;
+use app\api\model\VClass as ClassModel;
+use app\api\model\College as CollegeModel;
 use think\Controller;
 
 class User extends Controller
@@ -282,6 +284,122 @@ class User extends Controller
         }
 
         return $api->msg_200($data);
+    }
+
+    /****************后台接口 BEGIN*******************/
+    /**
+     * 获取用户列表
+     * @method [POST]
+     * @param [int] $pageSize []
+     * @param [int] $pageIndex []
+     * @param [string] $moduleName [模块名]
+     * @param [string] $searchBasis [搜索依据]  [0: 按用户名字搜索] [1:按班级名搜索学生] [2:按学院名搜索学生] [3:按学院名搜索教师]
+     * @param [string] $searchValue [搜索值]
+     * @param [token] $token [Token]
+     */
+    public function getUserList()
+    {
+        $api = new Api;
+        $pageSize = input('post.pageSize');
+        $pageIndex = input('post.pageIndex');
+        $moduleName = input('post.moduleName');
+        $searchBasis = input('post.searchBasis');
+        $searchValue = input('post.searchValue.name');
+        $token = input('post.token');
+
+        if (!$pageSize || !$pageIndex || !$moduleName || !$token) {
+            return $api->msg_401();
+        }
+
+        if ($moduleName == 'student') {
+            $roleId = 1;
+        } elseif ($moduleName =='teacher') {
+            $roleId = 2;
+        } else {
+            return $api->return_msg(401, '该模块不存在！');
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'select_' . $moduleName);
+            if ($isPermission == 0) {
+                return $api->msg_405();
+            }
+
+            $user = new UserModel;
+            $list = array();
+
+            if ($searchBasis && $searchValue) {
+                switch ($searchBasis) {
+                    default:
+                    case '0':
+                        $user = new UserModel;
+
+                        $list = $user->where('name', 'like', $searchValue . '%')
+                            ->where('role_id', $roleId);
+                            ->select();
+                        break;
+                    case '1':
+                        $class = new ClassModel;
+
+                        $classList = $class->where('name', 'like', $searchValue . '%')
+                            ->select();
+                        if ($classList) {
+                            foreach ($classList as $item) {
+                                $list = array_merge($list, $item->user()->where('role_id', 2));
+                            };
+                        };
+                        break;
+                    case '2':
+                        $college = new CollegeModel;
+                        $classList = array();
+
+                        $collegeList = $college->where('name', 'like', $searchValue . '%')
+                            ->select();
+                        if ($collegeList) {
+                            foreach ($collegeList as $item) {
+                                $classList = array_merge($classList, $item->class);
+                            };
+                            if ($classList) {
+                                foreach($classList as $item) {
+                                    $list = array_merge($list, $item->user()->where('role_id', 2));
+                                };
+                            };
+                        };
+                        break;
+                    case '3':
+                        $college = new CollegeModel;
+
+                        $collegeList = $college->where('name', 'like', $searchValue . '%')
+                            ->select();
+                        if ($collegeList) {
+                            foreach ($collegeList as $item) {
+                                $list = array_merge($list, $item->user()->where('role_id', '<>', 2));
+                            };
+                        };
+                };
+                $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
+                $count = count($list);
+            } else {
+                $count = $user->where('role_id', 2)
+                    ->count();
+                $list = $user->limit($pageSize * ($pageIndex - 1), $pageSize)
+                    ->where('role_id', 2)
+                    ->order('id')
+                    ->select();
+            }    
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->msg_200([
+            'count' => $count,
+            'list' => $list
+        ]);
     }
 }
 ?>

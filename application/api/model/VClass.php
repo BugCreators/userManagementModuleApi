@@ -11,5 +11,10 @@ class VClass extends Model
             ->hasOne('Major', 'id', 'major_id')
             ->field('name, college_id');
     }
+
+    public function user()
+    {
+        return $this->hasMany('User', 'class_id', 'id');
+    }
 }
 ?>

@@ -9,9 +9,19 @@ class College extends Model
     use SoftDelete;
     protected $deleteTime = 'delete_time';
     
-    protected function Major()
+    protected function major()
     {
         return $this->hasMany('Major', 'college_id', 'id');
+    }
+
+    protected function class()
+    {
+        return $this->hasManyThrough('VClass', 'Major' 'major_id', 'college_id', 'id');
+    }
+
+    protected function user()
+    {
+        return $this->hasMany('User', 'college_id', 'id');
     }
 }
 ?>

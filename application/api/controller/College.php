@@ -3,12 +3,11 @@ namespace app\api\controller;
 
 use app\api\controller\Api;
 use app\api\model\College as CollegeModel;
-use app\api\model\User as UserModel;
 
 class College
 {
     /**
-     * 首页获取学院列表
+     * 获取学院列表
      * @method [GET] [POST]
      */
     public function getCollegeList()
@@ -30,7 +29,7 @@ class College
     /**
      * 获取学院简介
      * @method [GET]
-     * @param [int] $collegeId [学院ID]
+     * @param [string] $collegeId [学院ID]
      */
     public function getCollegeDetail()
     {

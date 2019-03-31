@@ -25,5 +25,6 @@ class User extends Model
             ->hasOne('Role', 'id', 'role_id')
             ->field('id, name');
     }
+
 }
 ?>
