@@ -340,7 +340,7 @@ class User extends Controller
                         $user = new UserModel;
 
                         $list = $user->where('name', 'like', $searchValue . '%')
-                            ->where('role_id', $roleId);
+                            ->where('role_id', $roleId)
                             ->select();
                         break;
                     case '1':

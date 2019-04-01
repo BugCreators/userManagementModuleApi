@@ -91,7 +91,7 @@ class College
 
             $college = new CollegeModel;
             if ($collegeName) {
-                $list = $college->where('name', 'like', $collegeName . '%')
+                $list = $college->where('name', 'like', '%' . $collegeName . '%')
                 ->select();
                 $count = count($list);
             } else {

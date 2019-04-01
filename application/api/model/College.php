@@ -14,9 +14,9 @@ class College extends Model
         return $this->hasMany('Major', 'college_id', 'id');
     }
 
-    protected function class()
+    protected function vClass()
     {
-        return $this->hasManyThrough('VClass', 'Major' 'major_id', 'college_id', 'id');
+        return $this->hasManyThrough('VClass', 'Major', 'major_id', 'college_id', 'id');
     }
 
     protected function user()

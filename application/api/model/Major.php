@@ -2,17 +2,21 @@
 namespace app\api\model;
 
 use think\Model;
+use traits\model\SoftDelete;
 
 class Major extends Model
 {
-    public function college()
+    use SoftDelete;
+    protected $deleteTime = 'delete_time';
+
+    protected function college()
     {
         return $this
             ->hasOne("College", 'id', 'college_id')
             ->field('id, name');
     }
 
-    public function collegeName()
+    protected function collegeName()
     {
         return $this
             ->hasOne("College", 'id', 'college_id')
