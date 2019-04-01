@@ -2,22 +2,22 @@
 namespace app\api\controller;
 
 use app\api\controller\Api;
-use app\api\model\Major as MajorModel;
+use app\api\model\VClass as ClassModel;
 use app\api\model\College as CollegeModel;
 
-class Major
+class Vclass
 {
     /****************后台接口 BEGIN*******************/
     /**
-     * 获取专业列表
+     * 获取班级列表
      * @method [POST]
-     * @param [int] $pageSize []
-     * @param [int] $pageIndex []
+     * @param [int] $pageSize [页码]
+     * @param [int] $pageIndex [页数]
      * @param [string] $searchBasis [搜索依据] [0:按名字搜索] [1:按学院名搜索]
      * @param [string] $searchValue [搜索值]
      * @param [string] $token [Token]
      */
-    public function getMajorList()
+    public function getClassList()
     {
         $api = new Api;
         $pageSize = input('post.pageSize');
@@ -36,21 +36,22 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'select_class');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
+            $class = new ClassModel;
             if ($searchValue) {
                 if ($searchBasis == "0") {
-                    $list = $major->where('name', 'like', '%' . $searchValue . '%')
+                    $list = $class->where('name', 'like', '%' . $searchValue . '%')
                         ->select();
                     foreach($list as $item) {
-                        $item->collegeName = $item->college->name;
-                        $item->hidden(['college_id', 'college']);
+                        $item->majorName = $item->major->name;
+                        $item->collegeName = $item->major->college->name;
+                        $item->hidden(['major_id', 'major']);
                     };
-                } elseif($searchBasis == "1") {
+                } elseif ($searchBasis == "1") {
                     $college = new CollegeModel;
                     $collegeList = $college->field('id, name')
                         ->where('name', 'like', '%' . $searchValue . '%')
@@ -59,29 +60,30 @@ class Major
                     foreach ($collegeList as $collegeItem) {
                         $majorList = $collegeItem->major;
                         foreach ($majorList as $majorItem) {
-                            $majorItem->collegeName = $collegeItem->name;
-                            $majorItem->hidden(['college_id', 'college']);
+                            $classList = $majorItem->vclass;
+                            foreach ($classList as $classItem) {
+                                $classItem->majorName = $majorItem->name;
+                                $classItem->collegeName = $collegeItem->name;
+                            }
+                            $temp = json_decode(json_encode($classList), true);
+                            $list = array_merge($list, $temp);
                         }
-                        $temp = json_decode(json_encode($majorList), true);
-                        $list = array_merge($list, $temp);
                     }
                 };
                 $count = count($list);
                 $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
             } else {
-                $count = $major->count();
-                $list = $major
+                $count = $class->count();
+                $list = $class
                     ->limit($pageSize * ($pageIndex - 1), $pageSize)
                     ->order('id')
                     ->select();
                 foreach($list as $item) {
-                    $item->collegeName = $item->college->name;
-                    $item->hidden(['college_id', 'college']);
+                    $item->majorName = $item->major->name;
+                    $item->collegeName = $item->major->college->name;
+                    $item->hidden(['major_id', 'major']);
                 }
             }
-
-            
-
         } catch (\Exception $th) {
             return $api->msg_500();
         }
@@ -93,11 +95,11 @@ class Major
     }
 
     /**
-     * 获取专业列表
+     * 获取班级列表
      * @method [POST]
      * @param [string] $token [Token]
      */
-    public function getAllMajorList()
+    public function getAllClassList()
     {
         $api = new Api;
         $token = input('post.token');
@@ -111,24 +113,26 @@ class Major
             return $tokenData;
         };
 
-        try {
+        // try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_major');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
-            $list = $major->field('name as 专业名, level as 学历层次,
-                college_id, description as 专业概况, train_objective as 培养目标,
-                main_course as 主要课程, employment_direction as 就业方向')
+            $class = new ClassModel;
+            $list = $class->field('grade as 年级, name as 班级名, major_id')
                 ->select();
             foreach($list as $item) {
-                $item->hidden(['college_id']);
-                $item->appendRelationAttr('collegeNameByGetAll', ['学院名']);
+                $collegeName = json_decode(json_encode($item->major->collegeNameByGetAll), true);
+                $item->appendRelationAttr('majorNameByGetAll', ['专业名']);
+                $item->hidden(['major_id']);
+                $item = array_merge(json_decode(json_encode($item), true), $collegeName);
             }
-        } catch (\Exception $th) {
-            return $api->msg_500();
-        }
+            return $list;
+            exit;
+        // } catch (\Exception $th) {
+        //     return $api->msg_500();
+        // }
 
         return $api->msg_200($list);
     }

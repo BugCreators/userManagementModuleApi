@@ -11,16 +11,24 @@ class Major extends Model
 
     protected function college()
     {
-        return $this
-            ->hasOne("College", 'id', 'college_id')
+        return $this->hasOne('College', 'id', 'college_id')
             ->field('id, name');
     }
 
-    protected function collegeName()
+    protected function belongsToCollege() // 与college()效果一样
     {
-        return $this
-            ->hasOne("College", 'id', 'college_id')
+        return $this->belongsTo('College');
+    }
+
+    protected function collegeNameByGetAll()
+    {
+        return $this->hasOne('College', 'id', 'college_id')
             ->field('name as 学院名');
+    }
+
+    protected function vclass() 
+    {
+        return $this->hasMany('VClass', 'major_id', 'id');
     }
 }
 ?>

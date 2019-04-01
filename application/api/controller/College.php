@@ -136,7 +136,6 @@ class College
             }
 
             $college = new CollegeModel;
-            $count = $college->count();
             $list = $college->field('name as 学院名, en_name as 英文名, website as 网站链接, description as 学院描述')
                 ->select();
         } catch (\Exception $th) {

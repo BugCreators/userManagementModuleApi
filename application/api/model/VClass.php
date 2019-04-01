@@ -16,5 +16,11 @@ class VClass extends Model
     {
         return $this->hasMany('User', 'class_id', 'id');
     }
+
+    public function majorNameByGetAll()
+    {
+        return $this->major()
+            ->field('name as 专业名');
+    }
 }
 ?>

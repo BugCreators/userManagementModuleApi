@@ -134,5 +134,12 @@ class Api
             ->pivot->permission;
         return $authority;
     }
+
+    function merge_obj(){
+        foreach(func_get_args() as $a){
+            $objects[]=(array)$a;
+        }
+        return (object)call_user_func_array('array_merge', $objects);
+    }
 }
 ?>
