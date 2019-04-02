@@ -26,5 +26,10 @@ class User extends Model
             ->field('id, name');
     }
 
+    protected function roleLevel()
+    {
+        return $this->hasOne('Role', 'id', 'role_id');
+    }
+
 }
 ?>

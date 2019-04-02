@@ -2,7 +2,10 @@
 namespace app\api\controller;
 
 use app\api\controller\Api;
+use app\api\model\User as UserModel;
 use app\api\model\Role as RoleModel;
+use app\api\model\Authority as AuthorityModel;
+use app\api\model\Module as ModuleModel;
 
 class Role
 {
@@ -68,57 +71,18 @@ class Role
     }
 
     /**
-     * 获取院系列表
-     * @method [POST]
-     * @param [string] $token [Token]
-     */
-    public function getAllDepartmentList()
-    {
-        $api = new Api;
-        $token = input('post.token');
-
-        if (!$token) {
-            return $api->msg_401();
-        }
-
-        $tokenData = $api->verification($token);
-        if ($tokenData['code'] !== 200) {
-            return $tokenData;
-        };
-
-        try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_department');
-            if ($isPermission == 0) {
-                return $api->msg_405();
-            }
-
-            $department = new DepartmentModel;
-            $list = $department->field('name as 院系名, college_id, description as 简介')
-                ->select();
-            foreach($list as $item) {
-                $item->hidden(['college_id']);
-                $item->appendRelationAttr('collegeNameByGetAll', ['学院']);
-            }
-        } catch (\Exception $th) {
-            return $api->msg_500();
-        }
-
-        return $api->msg_200($list);
-    }
-
-    /**
-     * 获取院系详情
+     * 获取角色详情
      * @method [GET]
-     * @param [string] $departmentId [院系ID]
+     * @param [string] $roleId [角色ID]
      * @param [string] $token [Token]
      */
-    public function getDepartmentDetail() 
+    public function getRoleDetail() 
     {
         $api = new Api;
-        $departmentId = input('get.id');
+        $roleId = input('get.id');
         $token = input('get.token');
         
-        if (!$departmentId || !$token) {
+        if (!$roleId || !$token) {
             return $api->msg_401();
         }
 
@@ -128,14 +92,39 @@ class Role
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_department');
+            $isPermission = $api->authority($tokenData['data']->number, 'select_role');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $department = new DepartmentModel;
-            $data = $department->where('id', $departmentId)
+            $role = new RoleModel;
+            $data = $role->where('id', $roleId)
                 ->find();
+            $authorityList = $data->authority;
+
+            $module = new ModuleModel;
+            $moduleList = $module->field('id, cn_name')
+                ->select();
+            $ids = array();
+            $i = 0;
+            foreach ($moduleList as $moduleItem) {
+                $authorityOfModule = $moduleItem->authorityField;
+                foreach ($authorityOfModule as $authorityOfModuleItem) {
+                    foreach ($authorityList as $authorityItem) {
+                        if ($authorityOfModuleItem->id == $authorityItem->id) {
+                            if ($authorityItem->pivot->permission == 1) {
+                                $ids[$i] = $authorityItem->id;
+                                $i++;
+                            }
+                        }
+                    }
+                }
+                $moduleItem->ids = $ids;
+                $ids = array();
+                $i = 0;
+            }
+            $data->module = $moduleList;
+            $data->hidden(['authority']);
         } catch (\Exception $th) {
             return $api->msg_500();
         }
@@ -148,54 +137,71 @@ class Role
     }
 
     /**
-     * 编辑院系信息
+     * 编辑角色信息
      * @method [POST]
      * @param [array] $data [专业详情]
-     * @param [string] $data['id'] [院系ID]
-     * @param [string] $data['name'] [院系名]
-     * @param [string] $data['college_id'] [学院ID]
-     * @param [string] $data['description'] [简介]
+     * @param [string] $data['id'] [角色ID]
+     * @param [string] $data['name'] [角色名]
+     * @param [string] $data['description'] [角色介绍]
+     * @param [string] $data['level'] [权限等级]
      * @param [string] $token [Token]
      */
-    public function changeDepartment()
+    public function changeRole()
     {
         $api = new Api;
 
         $data = input('post.data/a');
         $token = input('post.token');
 
-        if (!$data || !$token || !$data['id'] || !$data['name'] || !$data['college_id']) {
+        if (!$data || !$token || !$data['id'] || !$data['name'] || $data['level'] == "") {
             return $api->msg_401();
         }
-
         $tokenData = $api->verification($token);
         if ($tokenData['code'] !== 200) {
             return $tokenData;
         };
 
-        try {
-            $isPermission = $api->authority($tokenData['data']->number, 'update_department');
+        // try {
+            $isPermission = $api->authority($tokenData['data']->number, 'update_role');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $department = new DepartmentModel;
-            $result = $department->allowField(['name', 'college_id', 'description'])
-                ->save($data, ['id' => $data['id']]);
-
-            if ($result) {
-                $newData = $department->where('id', $data['id'])
-                    ->find();
-                $newData->appendRelationAttr('collegeNameByGetAll', ['学院']);
-                $newData->hidden(['college_id']);
-
-                return $api->return_msg(200, '修改成功！', $newData);
-            } else {
-                return $api->return_msg(401, '修改失败，数据未改动！');
+            $user = new UserModel;
+            $userData = $user->where('number', $tokenData['data']->number)
+                ->find();
+            $userRoleLevel = $userData->role->value('level');
+            if ($userRoleLevel >= $data['level']) {
+                return $api->return_msg(401, '无法修改大于或等于当前用户的权限等级！');
             }
-        } catch (\Exception $th) {
-            return $api->msg_500();
-        }
+
+            $role = new RoleModel;
+            $changedRoleLevel = $role->where('id', $data['id'])->value('level');
+            if ($userRoleLevel >= $changedRoleLevel) {
+                return $api->return_msg(401, '无法修改大于或等于当前用户权限等级的角色！');
+            }
+
+            $roleData = $role->where('id', $data['id'])
+                ->find();
+            $roleData->allowField(['name', 'level', 'description'])
+                ->save($data);
+            
+            $authority = new AuthorityModel;
+            $authorityIds = $authority->column('id');
+
+            return $authorityIds;
+            $roleData->authority()->attach($authorityIds, ['permission' => 0]);
+            $module = $data['module'];
+            foreach ($module as $moduleItem) {
+                if (isset($moduleItem['ids'])) {
+                    $roleData->authority()->attach($moduleItem['ids'], ['permission' => 1]);
+                }
+            }
+
+            return $api->return_msg(200, '修改成功！');
+        // } catch (\Exception $th) {
+        //     return $api->msg_500();
+        // }
     }
 
     /**

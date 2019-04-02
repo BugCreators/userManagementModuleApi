@@ -9,5 +9,11 @@ class Module extends Model
     {
         return $this->hasMany('Authority', 'module_id', 'id');
     }
+
+    protected function authorityField()
+    {
+        return $this->authority()
+            ->field('id, cn_name');
+    }
 }
 ?>

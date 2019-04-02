@@ -24,7 +24,7 @@ class Role extends Model
     // 角色拥有的权限名
     public function permission()
     {
-        return $this->authority()->field('authority.cn_name')->where('permission', 1);
+        return $this->authority()->field('authority.id, authority.cn_name')->where('permission', 1);
     }
 
     // 通过权限名搜索权限
