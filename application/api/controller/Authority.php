@@ -65,8 +65,7 @@ class Authority
                 $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
             } else {
                 $count = $authority->count();
-                $list = $authority->where('id', '>', $pageSize * ($pageIndex - 1))
-                    ->limit($pageSize)
+                $list = $authority->limit($pageSize * ($pageIndex - 1), $pageSize)
                     ->order('id')
                     ->select();
                 foreach($list as $item) {
