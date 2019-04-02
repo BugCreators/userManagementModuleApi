@@ -9,9 +9,24 @@ class College extends Model
     use SoftDelete;
     protected $deleteTime = 'delete_time';
     
+    protected function department()
+    {
+        return $this->hasMany('Department', 'college_id', 'id');
+    }
+
+    protected function departmentField()
+    {
+        return $this->department()->field('id, name');
+    }
+
     protected function major()
     {
         return $this->hasMany('Major', 'college_id', 'id');
+    }
+    
+    protected function majorField()
+    {
+        return $this->major()->field('id, name');
     }
 
     protected function vClass()

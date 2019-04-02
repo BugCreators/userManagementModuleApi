@@ -21,6 +21,22 @@ class User extends Controller
     }
 
     /**
+     * 获取年级年份
+     * @method [GET]
+     */
+    public function getGradeList()
+    {
+        $api = new Api;
+        $years = array();
+        $currentYear = date('Y');
+        for ($i = 0; $i < 7; $i++) {
+            $years[$i] = $currentYear - $i . "级";
+        }
+
+        return $api->msg_200($years);
+    }
+
+    /**
      * 登陆接口
      * @method [POST]
      * @param [array] $data
@@ -111,7 +127,7 @@ class User extends Controller
         
         $user->hidden(['v_class_id', 'vclass']);
 
-        return $api->mag_200($user);
+        return $api->msg_200($user);
     }
 
     /**

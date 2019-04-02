@@ -2,14 +2,14 @@
 namespace app\api\controller;
 
 use app\api\controller\Api;
-use app\api\model\Major as MajorModel;
+use app\api\model\Department as DepartmentModel;
 use app\api\model\College as CollegeModel;
 
-class Major
+class Department
 {
     /****************后台接口 BEGIN*******************/
     /**
-     * 获取专业列表
+     * 获取院系列表
      * @method [POST]
      * @param [int] $pageSize []
      * @param [int] $pageIndex []
@@ -17,7 +17,7 @@ class Major
      * @param [string] $searchValue [搜索值]
      * @param [string] $token [Token]
      */
-    public function getMajorList()
+    public function getDepartmentList()
     {
         $api = new Api;
         $pageSize = input('post.pageSize');
@@ -36,20 +36,19 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'select_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
+            $department = new DepartmentModel;
             if ($searchValue) {
-                if ($searchBasis == '0') {
-                    $list = $major->where('name', 'like', '%' . $searchValue . '%')
+                if ($searchBasis == 0) {
+                    $list = $department->where('name', 'like', '%' . $searchValue . '%')
                         ->select();
                     foreach($list as $item) {
                         $item->collegeName = $item->college->name;
-                        $item->appendRelationAttr('departmentName', ['departmentName']);
-                        $item->hidden(['college_id', 'college', 'department_id', 'department']);
+                        $item->hidden(['college_id', 'college']);
                     };
                 } elseif($searchBasis == '1') {
                     $college = new CollegeModel;
@@ -58,28 +57,26 @@ class Major
                         ->select();
                     $list = array();
                     foreach ($collegeList as $collegeItem) {
-                        $majorList = $collegeItem->major;
-                        foreach ($majorList as $majorItem) {
-                            $majorItem->collegeName = $collegeItem->name;
-                            $majorItem->appendRelationAttr('departmentName', ['departmentName']);
-                            $majorItem->hidden(['college_id', 'college', 'department_id', 'department']);
+                        $departmentList = $collegeItem->department;
+                        foreach ($departmentList as $departmentItem) {
+                            $departmentItem->collegeName = $collegeItem->name;
+                            $departmentItem->hidden(['college_id', 'college']);
                         }
-                        $temp = json_decode(json_encode($majorList), true);
+                        $temp = json_decode(json_encode($departmentList), true);
                         $list = array_merge($list, $temp);
                     }
                 };
                 $count = count($list);
                 $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
             } else {
-                $count = $major->count();
-                $list = $major
+                $count = $department->count();
+                $list = $department
                     ->limit($pageSize * ($pageIndex - 1), $pageSize)
                     ->order('id')
                     ->select();
                 foreach($list as $item) {
                     $item->collegeName = $item->college->name;
-                    $item->appendRelationAttr('departmentName', ['departmentName']);
-                    $item->hidden(['college_id', 'college', 'department_id', 'department']);
+                    $item->hidden(['college_id', 'college']);
                 }
             }
         } catch (\Exception $th) {
@@ -93,11 +90,11 @@ class Major
     }
 
     /**
-     * 获取专业列表
+     * 获取院系列表
      * @method [POST]
      * @param [string] $token [Token]
      */
-    public function getAllMajorList()
+    public function getAllDepartmentList()
     {
         $api = new Api;
         $token = input('post.token');
@@ -112,20 +109,17 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'select_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
-            $list = $major->field('name as 专业名, level as 学历层次,
-                college_id, department_id, description as 专业概况, train_objective as 培养目标,
-                main_course as 主要课程, employment_direction as 就业方向')
+            $department = new DepartmentModel;
+            $list = $department->field('name as 院系名, college_id, description as 简介')
                 ->select();
             foreach($list as $item) {
-                $item->hidden(['college_id', 'department_id']);
-                $item->appendRelationAttr('departmentNameByGetAll', ['教学系']);
-                $item->appendRelationAttr('collegeNameByGetAll', ['学院名']);
+                $item->hidden(['college_id']);
+                $item->appendRelationAttr('collegeNameByGetAll', ['学院']);
             }
         } catch (\Exception $th) {
             return $api->msg_500();
@@ -135,12 +129,12 @@ class Major
     }
 
     /**
-     * 根据学院ID获取专业列表(班级管理)
+     * 根据学院ID获取院系列表(专业管理)
      * @method [GET]
      * @param [stirng] $collegeId [学院ID]
      * @param [string] $token [Token]
      */
-    public function getMajorListByCollegeId()
+    public function getDepartmentListByCollegeId()
     {
         $api = new Api;
         $collegeId = input('get.id');
@@ -156,7 +150,7 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_class');
+            $isPermission = $api->authority($tokenData['data']->number, 'select_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
@@ -164,27 +158,27 @@ class Major
             $college = new CollegeModel;
             $data = $college->where('id', $collegeId)
                 ->find();
-            $majorList = $data->majorField;
+            $departmentList = $data->departmentField;
         } catch (\Exception $th) {
             return $api->msg_500();
         }
 
-        return $api->msg_200($majorList);
+        return $api->msg_200($departmentList);
     }
 
     /**
-     * 获取专业详情
+     * 获取院系详情
      * @method [GET]
-     * @param [string] $marjorId [专业ID]
+     * @param [string] $departmentId [院系ID]
      * @param [string] $token [Token]
      */
-    public function getMajorDetail() 
+    public function getDepartmentDetail() 
     {
         $api = new Api;
-        $marjorId = input('get.id');
+        $departmentId = input('get.id');
         $token = input('get.token');
         
-        if (!$marjorId || !$token) {
+        if (!$departmentId || !$token) {
             return $api->msg_401();
         }
 
@@ -194,13 +188,13 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'select_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
-            $data = $major->where('id', $marjorId)
+            $department = new DepartmentModel;
+            $data = $department->where('id', $departmentId)
                 ->find();
         } catch (\Exception $th) {
             return $api->msg_500();
@@ -214,21 +208,16 @@ class Major
     }
 
     /**
-     * 编辑专业信息
+     * 编辑院系信息
      * @method [POST]
      * @param [array] $data [专业详情]
-     * @param [string] $data['id'] [专业ID]
-     * @param [string] $data['name'] [专业名]
-     * @param [string] $data['level'] [学历层次]
+     * @param [string] $data['id'] [院系ID]
+     * @param [string] $data['name'] [院系名]
      * @param [string] $data['college_id'] [学院ID]
-     * @param [string] $data['department_id'] [院系ID]
-     * @param [string] $data['description'] [专业概况]
-     * @param [string] $data['train_objective'] [培养目标]
-     * @param [string] $data['main_course'] [主要课程]
-     * @param [string] $data['employment_direction'] ['就业方向']
+     * @param [string] $data['description'] [简介]
      * @param [string] $token [Token]
      */
-    public function changeMajor()
+    public function changeDepartment()
     {
         $api = new Api;
 
@@ -245,19 +234,18 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'update_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'update_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
-            $result = $major->allowField(['name', 'level', 'college_id', 'department_id', 'description', 'train_objective', 'main_course', 'employment_direction'])
+            $department = new DepartmentModel;
+            $result = $department->allowField(['name', 'college_id', 'description'])
                 ->save($data, ['id' => $data['id']]);
 
             if ($result) {
-                $newData = $major->where('id', $data['id'])
+                $newData = $department->where('id', $data['id'])
                     ->find();
-                $newData->appendRelationAttr('departmentNameByGetAll', ['教学系']);
                 $newData->appendRelationAttr('collegeNameByGetAll', ['学院']);
                 $newData->hidden(['college_id']);
 
@@ -271,20 +259,15 @@ class Major
     }
 
     /**
-     * 添加专业
+     * 添加院系
      * @method [POST]
-     * @param [array] $data [学院详情]
-     * @param [string] $data['name'] [专业名]
-     * @param [string] $data['level'] [学历层次]
+     * @param [array] $data [院系详情]
+     * @param [string] $data['name'] [院系名]
      * @param [string] $data['college_id'] [学院ID]
-     * @param [string] $data['department_id'] [院系ID]
-     * @param [string] $data['description'] [专业概况]
-     * @param [string] $data['train_objective'] [培养目标]
-     * @param [string] $data['main_course'] [主要课程]
-     * @param [string] $data['employment_direction'] ['就业方向']
+     * @param [string] $data['description'] [简介]
      * @param [string] $token [Token]
      */
-    public function addMajor()
+    public function addDepartment()
     {
         $api = new Api;
 
@@ -301,20 +284,21 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'insert_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'insert_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
-            $haveExisted = $major->where('name', $data['name'])
+            $department = new DepartmentModel;
+            $haveExisted = $department->where('name', $data['name'])
                 ->find();
             if($haveExisted) {
-                return $api->return_msg(401, '该专业已存在！请输入其它');
+                return $api->return_msg(401, '该院系已存在！请输入其它院系');
             }
 
-            $result = $major->allowField(true)
+            $result = $department->allowField(true)
                 ->save($data);
+            
         } catch (\Exception $th) {
             return $api->msg_500();
         }
@@ -327,19 +311,19 @@ class Major
     }
 
     /**
-     * 批量添加专业
+     * 批量添加院系
      * @method [POST]
-     * @param [array] $majorList [学院列表]
+     * @param [array] $departmentList [院系列表]
      * @param [string] $token [Token]
      */
-    public function importMajorList()
+    public function importDepartmentList()
     {
         $api = new Api;
 
-        $majorList = input('post.majorList/a');
+        $departmentList = input('post.departmentList/a');
         $token = input('post.token');
 
-        if (!$majorList || !$token) {
+        if (!$departmentList || !$token) {
             return $api->msg_401();
         }
 
@@ -349,33 +333,42 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'insert_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'insert_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
+
+            $nameListOfData = array_map(function($item) {
+                return $item['name'];
+            }, $departmentList);
+            $department = new DepartmentModel;
+            $nameListOfDataBase = $department->column('name');
+            $allNameList = array_merge($nameListOfData, $nameListOfDataBase);
+            if (count($allNameList) != count(array_unique($allNameList))) {
+                return $api->return_msg(401, '导入失败！部分院系名已存在');
+            };
 
             $college = new CollegeModel;
             $collegeList = $college->field('id, name')
                 ->select();
             $collegeIsExist = true;
-            foreach($majorList as &$majorItem) {
+            foreach($departmentList as &$departmentItem) {
                 foreach($collegeList as $collegeItem) {
-                    if ($majorItem['collegeName'] == $collegeItem['name']) {
-                        $majorItem['college_id'] = $collegeItem['id'];
+                    if ($departmentItem['collegeName'] == $collegeItem['name']) {
+                        $departmentItem['college_id'] = $collegeItem['id'];
                         $collegeIsExist = false;
                         break;
                     }
                 };
                 if ($collegeIsExist) {
-                    return $api->return_msg(401, $majorItem['collegeName'] . '：该学院不存在！');
+                    return $api->return_msg(401, $departmentItem['collegeName'] . '：该学院不存在！');
                 } else {
                     $collegeIsExist = true;
                 }
             }
 
-            $major = new MajorModel;
-            $result = $major->allowField(true)
-                ->saveAll($majorList);
+            $result = $department->allowField(true)
+                ->saveAll($departmentList);
         } catch (\Exception $th) {
             return $api->msg_500();
         }
@@ -388,19 +381,19 @@ class Major
     }
 
     /**
-     * 删除专业
+     * 删除院系
      * @method [POST]
-     * @param [string] $majorId [学院ID]
+     * @param [string] $departmentsId [院系ID]
      * @param [string] $token [Token]
      */
-    public function deleteMajor()
+    public function deleteDepartments()
     {
         $api = new Api;
 
-        $majorsId = input('post.majorsId/a');
+        $departmentsId = input('post.departmentsId/a');
         $token = input('post.token');
 
-        if (!$majorsId || !$token) {
+        if (!$departmentsId || !$token) {
             return $api->msg_401();
         }
 
@@ -410,14 +403,14 @@ class Major
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'delete_major');
+            $isPermission = $api->authority($tokenData['data']->number, 'delete_department');
             if ($isPermission == 0) {
                 return $api->msg_405();
             }
 
-            $major = new MajorModel;
+            $department = new DepartmentModel;
 
-            $result = $major->destroy($majorsId);
+            $result = $department->destroy($departmentsId);
         } catch (\Exception $th) {
             return $api->msg_500();
         }
