@@ -37,7 +37,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_major');
-            if ($isPermission == 0) {
+            if ($isPermission) {
                 return $api->msg_405();
             }
 
@@ -67,6 +67,8 @@ class Major
                         $temp = json_decode(json_encode($majorList), true);
                         $list = array_merge($list, $temp);
                     }
+                } else {
+                    return $api->msg_401();
                 };
                 $count = count($list);
                 $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
@@ -113,7 +115,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_major');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -157,7 +159,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -195,7 +197,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_major');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -246,7 +248,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_major');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -302,7 +304,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_major');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -322,7 +324,7 @@ class Major
         if ($result) {
             return $api->return_msg(200, '添加成功！');
         } else {
-            return $api->return_msg(401);
+            return $api->msg_401();
         }
     }
 
@@ -350,7 +352,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_major');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -411,7 +413,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'delete_major');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 

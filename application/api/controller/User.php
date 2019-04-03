@@ -67,11 +67,14 @@ class User extends Controller
         $time = time();
         $user->save(['last_login_time' => $time]);
 
-        $user->roleName = $user->role->name;
-
-        $user->intoBackstage = $user->role
-            ->authorityByName('into_backstage')
-            ->pivot->permission;
+        if ($user->role) {
+            $user->roleName = $user->role->name;
+            $intoBackstage = $user->role
+                ->authorityByName('into_backstage');
+            if ($intoBackstage) {
+                $user->intoBackstage = $intoBackstage->pivot->permission;
+            };
+        };
 
         $token = $api->lssue($user['number'], $time);
         $user->token = $token;
@@ -251,9 +254,12 @@ class User extends Controller
             $user = $userModel->field('role_id')
                 ->where('number', $tokenData['data']->number)
                 ->find();
-            $user->intoBackstage = $user->role
-                ->authorityByName("into_backstage")
-                ->pivot->permission;
+            
+            $intoBackstage = $user->intoBackstage = $user->role
+                ->authorityByName("into_backstage");
+            if ($intoBackstage) {
+                $user->intoBackstage = $intoBackstage->pivot->permission;
+            }
         } catch (\Exception $e) {
             return $api->msg_500();
         };
@@ -342,7 +348,7 @@ class User extends Controller
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_' . $moduleName);
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 

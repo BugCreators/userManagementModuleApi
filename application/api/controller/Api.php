@@ -130,9 +130,12 @@ class Api
             ->where('number', $number)
             ->find();
         $authority = $user->role
-            ->authorityByName($authorityName)
-            ->pivot->permission;
-        return $authority;
+            ->authorityByName($authorityName);
+        if ($authority) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function merge_obj(){

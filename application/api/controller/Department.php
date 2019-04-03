@@ -37,13 +37,13 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
             $department = new DepartmentModel;
             if ($searchValue) {
-                if ($searchBasis == 0) {
+                if ($searchBasis == '0') {
                     $list = $department->where('name', 'like', '%' . $searchValue . '%')
                         ->select();
                     foreach($list as $item) {
@@ -65,6 +65,8 @@ class Department
                         $temp = json_decode(json_encode($departmentList), true);
                         $list = array_merge($list, $temp);
                     }
+                } else {
+                    return $api->msg_401();
                 };
                 $count = count($list);
                 $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
@@ -110,7 +112,7 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -151,7 +153,7 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -189,7 +191,7 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -235,11 +237,17 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
             $department = new DepartmentModel;
+            $haveExisted = $department->where('name', $data['name'])
+                ->find();
+            if($haveExisted) {
+                return $api->return_msg(401, '该院系名已存在！');
+            }
+
             $result = $department->allowField(['name', 'college_id', 'description'])
                 ->save($data, ['id' => $data['id']]);
 
@@ -285,7 +293,7 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -334,7 +342,7 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -404,7 +412,7 @@ class Department
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'delete_department');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 

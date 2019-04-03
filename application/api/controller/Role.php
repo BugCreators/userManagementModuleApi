@@ -4,7 +4,6 @@ namespace app\api\controller;
 use app\api\controller\Api;
 use app\api\model\User as UserModel;
 use app\api\model\Role as RoleModel;
-use app\api\model\Authority as AuthorityModel;
 use app\api\model\Module as ModuleModel;
 
 class Role
@@ -15,7 +14,7 @@ class Role
      * @method [POST]
      * @param [int] $pageSize []
      * @param [int] $pageIndex []
-     * @param [string] $searchBasis [搜索依据]
+     * @param [string] $searchBasis [搜索依据] [0:按角色名搜索] [1:按权限等级搜索]
      * @param [string] $searchValue [搜索值]
      * @param [string] $token [Token]
      */
@@ -39,14 +38,21 @@ class Role
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_role');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
             $role = new RoleModel;
             if ($searchValue) {
-                $list = $role->where('name', 'like', '%' . $searchValue . '%')
-                    ->select();
+                if ($searchBasis == "0") {
+                    $list = $role->where('name', 'like', '%' . $searchValue . '%')
+                        ->select();
+                } elseif ($searchBasis == "4") {
+                    $list = $role->where('level', $searchValue)
+                        ->select();
+                } else {
+                    return $api->msg_401();
+                }
                 $count = count($list);
                 $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
             } else {
@@ -93,7 +99,7 @@ class Role
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_role');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -104,6 +110,7 @@ class Role
 
             $module = new ModuleModel;
             $moduleList = $module->field('id, cn_name')
+                ->order('id')
                 ->select();
             $ids = array();
             $i = 0;
@@ -153,7 +160,7 @@ class Role
         $data = input('post.data/a');
         $token = input('post.token');
 
-        if (!$data || !$token || !$data['id'] || !$data['name'] || $data['level'] == "") {
+        if (!$data || !$token || !$data['id'] || !$data['name'] || $data['level'] == '') {
             return $api->msg_401();
         }
         $tokenData = $api->verification($token);
@@ -161,9 +168,9 @@ class Role
             return $tokenData;
         };
 
-        // try {
+        try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_role');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -180,47 +187,52 @@ class Role
             if ($userRoleLevel >= $changedRoleLevel) {
                 return $api->return_msg(401, '无法修改大于或等于当前用户权限等级的角色！');
             }
+            
+            $haveExisted = $role->where('name', $data['name'])
+                ->find();
+            if($haveExisted) {
+                return $api->return_msg(401, '该角色名已存在！请输入其它名字');
+            }
 
             $roleData = $role->where('id', $data['id'])
                 ->find();
+            $authority = $roleData->authority;
             $roleData->allowField(['name', 'level', 'description'])
                 ->save($data);
-            
-            $authority = new AuthorityModel;
-            $authorityIds = $authority->column('id');
 
-            return $authorityIds;
-            $roleData->authority()->attach($authorityIds, ['permission' => 0]);
+            $authorityIds = array();
+            $i = 0;
+            foreach ($authority as $authorityItem) {
+                $authorityIds[$i] = $authorityItem->id;
+                $i++;
+            }
+
+            $roleData->authority()->detach($authorityIds);
             $module = $data['module'];
             foreach ($module as $moduleItem) {
                 if (isset($moduleItem['ids'])) {
-                    $roleData->authority()->attach($moduleItem['ids'], ['permission' => 1]);
+                    $roleData->authority()->attach($moduleItem['ids']);
                 }
             }
 
             return $api->return_msg(200, '修改成功！');
-        // } catch (\Exception $th) {
-        //     return $api->msg_500();
-        // }
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
     }
 
     /**
-     * 添加院系
-     * @method [POST]
-     * @param [array] $data [院系详情]
-     * @param [string] $data['name'] [院系名]
-     * @param [string] $data['college_id'] [学院ID]
-     * @param [string] $data['description'] [简介]
+     * 获取模块权限列表
+     * @method [GET]
      * @param [string] $token [Token]
      */
-    public function addDepartment()
+    public function getModuleList()
     {
         $api = new Api;
 
-        $data = input('post.data/a');
         $token = input('post.token');
 
-        if (!$data || !$token || !$data['name'] || !$data['college_id']) {
+        if (!$token) {
             return $api->msg_401();
         }
 
@@ -230,21 +242,82 @@ class Role
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'insert_department');
-            if ($isPermission == 0) {
+            $isPermission = $api->authority($tokenData['data']->number, 'insert_role');
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
-            $department = new DepartmentModel;
-            $haveExisted = $department->where('name', $data['name'])
-                ->find();
-            if($haveExisted) {
-                return $api->return_msg(401, '该院系已存在！请输入其它院系');
+            $module = new ModuleModel;
+            $moduleList = $module->order('id')->select();
+            foreach ($moduleList as $moduleItem) {
+                $moduleItem->authorityField;
+                $moduleItem->ids = array();
             }
 
-            $result = $department->allowField(true)
+            return $api->msg_200($moduleList);
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+    }
+
+    /**
+     * 添加角色
+     * @method [POST]
+     * @param [array] $data [角色详情]
+     * @param [string] $data['name'] [角色名]
+     * @param [string] $data['description'] [角色介绍]
+     * @param [string] $data['level'] [权限登记]
+     * @param [array] $moduleList [权限列表]
+     * @param [string] $token [Token]
+     */
+    public function addRole()
+    {
+        $api = new Api;
+
+        $data = input('post.data/a');
+        $moduleList = input('post.moduleList/a');
+        $token = input('post.token');
+
+        if (!$data || !$token || !$data['name'] || $data['level'] == '') {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'insert_role');
+            if (!$isPermission) {
+                return $api->msg_405();
+            }
+
+            $user = new UserModel;
+            $userData = $user->where('number', $tokenData['data']->number)
+                ->find();
+            $userRoleLevel = $userData->role->value('level');
+            if ($userRoleLevel >= $data['level']) {
+                return $api->return_msg(401, '无法添加大于或等于当前用户的权限等级！');
+            }
+
+            $role = new RoleModel;
+            $haveExisted = $role->where('name', $data['name'])
+                ->find();
+            if($haveExisted) {
+                return $api->return_msg(401, '该角色名已存在！请输入其它名字');
+            }
+
+            $result = $role->allowField(true)
                 ->save($data);
-            
+
+            $newRole = $role->where('name', $data['name'])
+                ->find();
+            foreach ($moduleList as $moduleItem) {
+                if (isset($moduleItem['ids'])) {
+                    $newRole->authority()->attach($moduleItem['ids']);
+                }
+            }
         } catch (\Exception $th) {
             return $api->msg_500();
         }
@@ -252,17 +325,17 @@ class Role
         if ($result) {
             return $api->return_msg(200, '添加成功！');
         } else {
-            return $api->return_msg(401);
+            return $api->msg_401();
         }
     }
 
     /**
-     * 删除院系
+     * 删除角色
      * @method [POST]
-     * @param [string] $rolesId [院系ID]
+     * @param [string] $rolesId [角色ID]
      * @param [string] $token [Token]
      */
-    public function deleteDepartments()
+    public function deleteRole()
     {
         $api = new Api;
 
@@ -280,13 +353,26 @@ class Role
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'delete_role');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
-            $department = new DepartmentModel;
+            $user = new UserModel;
+            $userData = $user->where('number', $tokenData['data']->number)
+                ->find();
+            $userRoleLevel = $userData->role->value('level');
 
-            $result = $department->destroy($departmentsId);
+            $role = new RoleModel;
+            $changedRoleLevel = $role->where('id', 'in', $rolesId)
+                ->column('level');
+            
+            foreach ($changedRoleLevel as $levelItem) {
+                if ($userRoleLevel >= $levelItem) {
+                    return $api->return_msg(401, '部分角色权限等级大于或等于当前账户！');
+                }
+            }
+
+            $result = $role->destroy($rolesId);
         } catch (\Exception $th) {
             return $api->msg_500();
         }

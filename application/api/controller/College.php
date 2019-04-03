@@ -85,7 +85,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -131,7 +131,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -168,7 +168,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -216,7 +216,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -256,7 +256,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -311,7 +311,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -359,11 +359,17 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
             $college = new CollegeModel;
+            $haveExisted = $college->where('name', $data['name'])
+                ->find();
+            if($haveExisted) {
+                return $api->return_msg(401, '该学院名已存在！');
+            }
+
             $result = $college->allowField(['name', 'en_name', 'website', 'description'])
                 ->save($data, ['id' => $data['id']]);
 
@@ -407,7 +413,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -428,7 +434,7 @@ class College
         if ($result) {
             return $api->return_msg(200, '添加成功！');
         } else {
-            return $api->return_msg(401);
+            return $api->msg_401();
         }
     }
 
@@ -456,7 +462,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -507,7 +513,7 @@ class College
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'delete_college');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 

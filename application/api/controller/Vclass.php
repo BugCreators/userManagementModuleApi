@@ -38,7 +38,7 @@ class Vclass
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -78,6 +78,8 @@ class Vclass
                         $item->collegeName = $item->major->college->name;
                         $item->hidden(['major_id', 'major']);
                     };
+                } else {
+                    return $api->msg_401();
                 };
                 $count = count($list);
                 $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
@@ -124,7 +126,7 @@ class Vclass
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -171,7 +173,7 @@ class Vclass
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -218,7 +220,7 @@ class Vclass
 
         // try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -271,7 +273,7 @@ class Vclass
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -294,7 +296,7 @@ class Vclass
         if ($result) {
             return $api->return_msg(200, '添加成功！');
         } else {
-            return $api->return_msg(401);
+            return $api->msg_401();
         }
     }
 
@@ -322,7 +324,7 @@ class Vclass
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'insert_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -394,7 +396,7 @@ class Vclass
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'delete_class');
-            if ($isPermission == 0) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
