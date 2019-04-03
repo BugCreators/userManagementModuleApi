@@ -151,6 +151,44 @@ class Vclass
     }
 
     /**
+     * 根据专业ID获取班级列表
+     * @method [GET]
+     * @param [string] $majorId [专业ID]
+     * @param [string] $token [Token]
+     */
+    public function getClassListByMajorId()
+    {
+        $api = new Api;
+        $majorId = input('get.id');
+        $token = input('get.token');
+
+        if (!$majorId || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'select_student');
+            if (!$isPermission) {
+                return $api->msg_405();
+            }
+
+            $major = new MajorModel;
+            $data = $major->where('id', $majorId)
+                ->find();
+            $classList = $data->classField;
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->msg_200($classList);
+    }
+
+    /**
      * 获取班级详情
      * @method [GET]
      * @param [string] $classId [班级ID]

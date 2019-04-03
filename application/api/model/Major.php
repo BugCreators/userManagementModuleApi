@@ -47,5 +47,11 @@ class Major extends Model
     {
         return $this->hasMany('VClass', 'major_id', 'id');
     }
+
+    protected function classField()
+    {
+        return $this->vclass()
+            ->field('id, grade, name');
+    }
 }
 ?>

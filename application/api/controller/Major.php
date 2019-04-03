@@ -398,7 +398,7 @@ class Major
     /**
      * 删除专业
      * @method [POST]
-     * @param [string] $majorId [学院ID]
+     * @param [string] $majorsId [学院ID]
      * @param [string] $token [Token]
      */
     public function deleteMajor()
