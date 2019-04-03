@@ -82,7 +82,8 @@ class User extends Controller
         $user->hidden([
             'deleted',
             'role_id',
-            'role'
+            'role',
+            'branch_id'
         ]);
 
         return $api->msg_200($user);

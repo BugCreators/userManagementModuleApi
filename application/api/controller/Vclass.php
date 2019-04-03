@@ -317,6 +317,12 @@ class Vclass
             return $api->msg_401();
         }
 
+        foreach ($classList as $classItem) {
+            if (!$classItem['name'] || !$classItem['grade'] || !$classItem['majorName']) {
+                return $api->msg_401();
+            }
+        }
+
         $tokenData = $api->verification($token);
         if ($tokenData['code'] !== 200) {
             return $tokenData;

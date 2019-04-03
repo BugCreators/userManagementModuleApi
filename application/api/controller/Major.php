@@ -37,7 +37,7 @@ class Major
 
         try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_major');
-            if ($isPermission) {
+            if (!$isPermission) {
                 return $api->msg_405();
             }
 
@@ -343,6 +343,12 @@ class Major
 
         if (!$majorList || !$token) {
             return $api->msg_401();
+        }
+        
+        foreach ($majorList as $majorItem) {
+            if (!$majorItem['name'] || !$majorItem['collegeName']) {
+                return $api->msg_401();
+            }
         }
 
         $tokenData = $api->verification($token);

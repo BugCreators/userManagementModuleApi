@@ -364,10 +364,14 @@ class College
             }
 
             $college = new CollegeModel;
-            $haveExisted = $college->where('name', $data['name'])
-                ->find();
-            if($haveExisted) {
-                return $api->return_msg(401, '该学院名已存在！');
+            $collegeName = $college->where('id', $data['id'])
+                ->value('name');
+            if ($collegeName != $data['name']) {
+                $haveExisted = $college->where('name', $data['name'])
+                    ->find();
+                if ($haveExisted) {
+                    return $api->return_msg(401, '该学院已存在！');
+                }
             }
 
             $result = $college->allowField(['name', 'en_name', 'website', 'description'])
@@ -453,6 +457,12 @@ class College
 
         if (!$collegeList || !$token) {
             return $api->msg_401();
+        }
+
+        foreach ($collegeList as $collegeItem) {
+            if (!$collegeItem['name']) {
+                return $api->msg_401();
+            }
         }
 
         $tokenData = $api->verification($token);

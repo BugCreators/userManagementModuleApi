@@ -188,10 +188,14 @@ class Role
                 return $api->return_msg(401, '无法修改大于或等于当前用户权限等级的角色！');
             }
             
-            $haveExisted = $role->where('name', $data['name'])
-                ->find();
-            if($haveExisted) {
-                return $api->return_msg(401, '该角色名已存在！请输入其它名字');
+            $roleName = $role->where('id', $data['id'])
+                ->value('name');
+            if ($roleName != $data['name']) {
+                $haveExisted = $role->where('name', $data['name'])
+                    ->find();
+                if ($haveExisted) {
+                    return $api->return_msg(401, '该角色已存在！');
+                }
             }
 
             $roleData = $role->where('id', $data['id'])

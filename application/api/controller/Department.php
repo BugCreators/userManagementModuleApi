@@ -335,6 +335,12 @@ class Department
             return $api->msg_401();
         }
 
+        foreach ($departmentList as $departmentItem) {
+            if (!$departmentItem['name'] || !$departmentItem['collegeName']) {
+                return $api->msg_401();
+            }
+        }
+
         $tokenData = $api->verification($token);
         if ($tokenData['code'] !== 200) {
             return $tokenData;
