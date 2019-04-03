@@ -13,7 +13,7 @@ class Student
      * @method [GET]
      * @param [int] $pageSize []
      * @param [int] $pageIndex []
-     * @param [string] $searchBasis [搜索依据] [0: 按学院名搜索] [1:按班级名搜索] [2:按学生名搜索]
+     * @param [string] $searchBasis [搜索依据] [0: 按学生名搜索] [1:按学院名搜索] [5:按班级名搜索]
      * @param [string] $searchValue [搜索值]
      * @param [token] $token [Token]
      */
@@ -22,7 +22,7 @@ class Student
         $api = new Api;
         $pageSize = input('post.pageSize');
         $pageIndex = input('post.pageIndex');
-        $searchBasis = input('post.searchBasis');
+        $searchBasis = input('post.searchValue.basis');
         $searchValue = input('post.searchValue.name');
         $token = input('post.token');
 
@@ -44,58 +44,54 @@ class Student
             $user = new UserModel;
             $list = array();
 
-            if ($searchBasis && $searchValue) {
+            if ($searchValue) {
                 switch ($searchBasis) {
                     case '0':
-                        $college = new CollegeModel;
-                        $classList = array();
-
-                        $collegeList = $college->where('name', 'like', $searchValue . '%')
+                        $user = new UserModel;
+                        $list = $user->where('realname', 'like', '%' . $searchValue . '%')
+                            ->where('role_id', 2)
                             ->select();
-                        if ($collegeList) {
-                            foreach ($college as $item) {
-                                $classList = array_merge($classList, $item->class);
-                            };
-                            if ($classList) {
-                                foreach($classList as $item) {
-                                    $list = array_merge($list, $item->user()->where('role_id', 2));
-                                };
-                            };
-                        };
-                        $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
                         break;
                     case '1':
+                        $college = new CollegeModel;
+                        $collegeList = $college->where('name', 'like', '%' . $searchValue . '%')
+                            ->select();
+                        if ($collegeList) {
+                            foreach ($collegeList as $collegeItem) {
+                                $list = array_merge($list, $collegeItem->students);
+                            };
+                        }
+                        break;
+                    case '5':
                         $class = new ClassModel;
-
-                        $classList = $class->where('name', 'like', $searchValue . '%')
+                        $classList = $class->where('name', 'like', '%' . $searchValue . '%')
                             ->select();
                         if ($classList) {
-                            foreach ($classList as $item) {
-                                $list = array_merge($list, $item->user()->where('role_id', 2));
-                            }
-                        }
-                        $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
-                        break;
-                    case '2':
-                        $user = new UserModel;
-
-                        $list = $user->where('name', 'like', $searchValue . '%')
-                            ->where('role_id', 2);
-                            ->select();
-                        $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
+                            foreach ($classList as $classItem) {
+                                $list = array_merge($list, $classItem->students);
+                            };
+                        };
                         break;
                     default:
+                        return $api->msg_401();
                         break;
                 };
                 $count = count($list);
+                $list = array_slice($list, $pageSize * ($pageIndex - 1), $pageSize);
             } else {
                 $count = $user->where('role_id', 2)
                     ->count();
-                $list = $user->limit($pageSize * ($pageIndex - 1), $pageSize)
+                $list = $user->field('id, realname, number, class_id, sex, phone, email, address, description')
+                    ->limit($pageSize * ($pageIndex - 1), $pageSize)
                     ->where('role_id', 2)
                     ->order('id')
                     ->select();
-            }    
+            }
+            foreach ($list as $item) {
+                $item->className = $item->vclass->grade . $item->vclass->name;
+                $item->collegeName = $item->vclass->major->college->name;
+                $item->hidden(['vclass', 'class_id']);
+            }
         } catch (\Exception $th) {
             return $api->msg_500();
         }
@@ -104,6 +100,11 @@ class Student
             'count' => $count,
             'list' => $list
         ]);
+    }
+
+    public function getStudentDetail()
+    {
+        
     }
 }
 ?>

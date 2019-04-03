@@ -11,16 +11,23 @@ class VClass extends Model
             ->hasOne('Major', 'id', 'major_id')
             ->field('name, college_id');
     }
+    
+    public function majorNameByGetAll()
+    {
+        return $this->major()
+            ->field('name as 专业名');
+    }
 
     public function user()
     {
         return $this->hasMany('User', 'class_id', 'id');
     }
 
-    public function majorNameByGetAll()
+    public function students()
     {
-        return $this->major()
-            ->field('name as 专业名');
+        return $this->user()
+            ->field('id, realname, number, class_id, sex, phone, email, address, description')
+            ->where('role_id', 2);
     }
 }
 ?>

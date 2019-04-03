@@ -15,7 +15,7 @@ class User extends Model
     protected function vclass()
     {
         return $this
-            ->hasOne('VClass', 'id', 'v_class_id')
+            ->hasOne('VClass', 'id', 'class_id')
             ->field('name, grade, major_id');
     }
 

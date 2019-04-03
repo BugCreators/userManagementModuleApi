@@ -38,5 +38,12 @@ class College extends Model
     {
         return $this->hasMany('User', 'college_id', 'id');
     }
+
+    protected function students()
+    {
+        return $this->user()
+            ->field('id, realname, number, class_id, sex, phone, email, address, description')
+            ->where('role_id', 2);
+    }
 }
 ?>

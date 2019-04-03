@@ -82,8 +82,7 @@ class User extends Controller
         $user->hidden([
             'deleted',
             'role_id',
-            'role',
-            'branch_id'
+            'role'
         ]);
 
         return $api->msg_200($user);
@@ -120,16 +119,16 @@ class User extends Controller
 
         $userModel = new UserModel;
         $user = $userModel
-            ->field('realname, number, phone, v_class_id, email, sex, address, description')
+            ->field('realname, number, phone, class_id, email, sex, address, description')
             ->where('number', $number)
             ->find();
 
-        if ($user['v_class_id']) {
+        if ($user['class_id']) {
             $user->class = $user->vclass->grade . $user->vclass->name;
             $user->college = $user->vclass->major->college->name;
         }
         
-        $user->hidden(['v_class_id', 'vclass']);
+        $user->hidden(['class_id', 'vclass']);
 
         return $api->msg_200($user);
     }
