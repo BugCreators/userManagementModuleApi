@@ -252,12 +252,7 @@ class Department
                 ->save($data, ['id' => $data['id']]);
 
             if ($result) {
-                $newData = $department->where('id', $data['id'])
-                    ->find();
-                $newData->appendRelationAttr('collegeNameByGetAll', ['学院']);
-                $newData->hidden(['college_id']);
-
-                return $api->return_msg(200, '修改成功！', $newData);
+                return $api->return_msg(200, '修改成功！');
             } else {
                 return $api->return_msg(401, '修改失败，数据未改动！');
             }

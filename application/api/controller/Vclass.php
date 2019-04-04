@@ -256,7 +256,7 @@ class Vclass
             return $tokenData;
         };
 
-        // try {
+        try {
             $isPermission = $api->authority($tokenData['data']->number, 'update_class');
             if (!$isPermission) {
                 return $api->msg_405();
@@ -267,20 +267,13 @@ class Vclass
                 ->save($data, ['id' => $data['id']]);
 
             if ($result) {
-                $newData = $class->where('id', $data['id'])
-                    ->find();
-                $collegeName = json_decode(json_encode($newData->major->collegeNameByGetAll), true);
-                $newData->hidden(['major', 'major_id']);
-                $newData->appendRelationAttr('majorNameByGetAll', ['专业名']);
-                $newData = array_merge(json_decode(json_encode($newData), true), $collegeName);
-
-                return $api->return_msg(200, '修改成功！', $newData);
+                return $api->return_msg(200, '修改成功！');
             } else {
                 return $api->return_msg(401, '修改失败，数据未改动！');
             }
-        // } catch (\Exception $th) {
-        //     return $api->msg_500();
-        // }
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
     }
 
     /**

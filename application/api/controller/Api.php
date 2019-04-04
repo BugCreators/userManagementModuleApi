@@ -65,7 +65,7 @@ class Api
         if ($data->number != $data->number) {
             return $this->msg_401(401, '该用户不存在！');
         }
-        if ($data->last_login_time != $user->last_login_time) {
+        if (!$user['last_login_time'] || $data->last_login_time != $user->last_login_time) {
             return $this->return_msg(402, '会话已过期，请重新登陆！');
         }
 

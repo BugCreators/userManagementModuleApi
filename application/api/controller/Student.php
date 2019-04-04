@@ -288,7 +288,7 @@ class Student
         $data = input('post.data/a');
         $token = input('post.token');
 
-        if (!$data || !$token || !$data['id'] || !$data['realname'] || strlen($data['number']) < 11 || !$data['college_id'] || !$data['class_id']) {
+        if (!$data || !$token || !$data['id'] || !$data['realname'] || strlen($data['number']) != 11 || !$data['college_id'] || !$data['class_id']) {
             return $api->msg_401();
         }
 
@@ -340,7 +340,7 @@ class Student
         $data = input('post.data/a');
         $token = input('post.token');
 
-        if (!$data || !$token || !$data['realname'] || strlen($data['number']) < 11 || !$data['college_id'] || !$data['class_id']) {
+        if (!$data || !$token || !$data['realname'] || strlen($data['number']) != 11 || !$data['college_id'] || !$data['class_id']) {
             return $api->msg_401();
         }
 
@@ -378,7 +378,79 @@ class Student
         }
     }
 
+    /**
+     * 批量添加学生
+     * @method [POST]
+     * @param [string] $data [添加条件]
+     * @param [string] $data['college_id'] [学院ID]
+     * @param [string] $data['major_id'] [专业ID]
+     * @param [string] $data['class_Id'] [班级ID]
+     * @param [array] $studentList [学院列表]
+     * @param [string] $token [Token]
+     */
+    public function importStudentList()
+    {
+        $api = new Api;
 
+        $data = input('post.data/a');
+        $studentList = input('post.studentList/a');
+        $token = input('post.token');
+
+        if (!$studentList || !$token || !$data['college_id'] || !$data['class_id']) {
+            return $api->msg_401();
+        }
+        
+        foreach ($studentList as $studentItem) {
+            if (!$studentItem['realname'] || strlen($studentItem['number']) != 11) {
+                return $api->msg_401();
+            };
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'insert_student');
+            if (!$isPermission) {
+                return $api->msg_405();
+            }
+
+            $class = new ClassModel;
+            $classData = $class->where('id', $data['class_id'])
+                ->find();
+            $collegeIdOfClass = $classData->major->college_id;
+            if (!$classData || $collegeIdOfClass != $data['college_id']) {
+                return $api->msg_401();
+            }
+
+            $numberOfData = array_map(function($item) {
+                return $item['number'];
+            }, $studentList);
+            $user = new UserModel;
+            $numberOfDatabase = $user->where('role_id', 2)->column('number');
+            $allNumberList = array_merge($numberOfData, $numberOfDatabase);
+            if (count($allNumberList) != count(array_unique($allNumberList))) {
+                return $api->return_msg(401, '导入失败！部分学号已存在');
+            };
+
+            foreach ($studentList as $key => $value) {
+                $studentList[$key]['password'] = md5($studentList[$key]['number']);
+            }
+
+            $result = $user->allowField(true)
+                ->saveAll($studentList);
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        if ($result) {
+            return $api->return_msg(200, '导入成功！');
+        } else {
+            return $api->return_msg(401);
+        }
+    }
 
     /**
      * 删除学生
