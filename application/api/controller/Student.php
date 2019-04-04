@@ -304,17 +304,29 @@ class Student
             }
 
             $user = new UserModel;
+
+            $userId = $user->where('number', $tokenData['data']->number)
+                ->value('id');
+            if ($userId != $data['id']) {
+                $haveExisted = $user->where('number', $data['number'])
+                    ->find();
+                if($haveExisted) {
+                    return $api->return_msg(401, '学号已存在！');
+                }
+            };
+
             $result = $user->allowField(['realname', 'number', 'sex', 'college_id',
                 'class_id', 'description', 'phone', 'address', 'email'])
                 ->save($data, ['id' => $data['id']]);
-
-            if ($result) {
-                return $api->return_msg(200, '修改成功！');
-            } else {
-                return $api->return_msg(401, '修改失败，数据未改动！');
-            }
+            
         } catch (\Exception $th) {
             return $api->msg_500();
+        }
+        
+        if ($result) {
+            return $api->return_msg(200, '修改成功！');
+        } else {
+            return $api->return_msg(401, '修改失败，数据未改动！');
         }
     }
 

@@ -75,6 +75,41 @@ class Branch
     }
 
     /**
+     * 管理员详情页获取部门列表
+     * @method [GET]
+     * @param [string] $token [Token]
+     */
+    public function getBranchListByAdminDetail()
+    {
+        $api = new Api;
+        $token = input('get.token');
+
+        if (!$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'select_admin');
+            if (!$isPermission) {
+                return $api->msg_405();
+            }
+
+            $branch = new BranchModel;
+            $list = $branch->field('id, name')
+                ->select();
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->msg_200($list);
+    }
+
+    /**
      * 获取部门列表
      * @method [POST]
      * @param [string] $token [Token]

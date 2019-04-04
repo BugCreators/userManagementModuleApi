@@ -45,10 +45,33 @@ class User extends Model
             ->field('id, name');
     }
 
-    protected function roleLevel()
+    protected function roleName() 
     {
-        return $this->hasOne('Role', 'id', 'role_id');
+        return $this->role()
+            ->field('name as roleName');
     }
 
+    protected function roleLevel()
+    {
+        return $this->hasOne('Role', 'id', 'role_id')
+            ->field('level');
+    }
+
+    protected function branch()
+    {
+        return $this->hasOne('Branch', 'id', 'branch_id');
+    }
+
+    protected function branchId()
+    {
+        return $this->branch()
+            ->field('id as branch_id');
+    }
+
+    protected function branchName()
+    {
+        return $this->branch()
+            ->field('name as branchName');
+    }
 }
 ?>

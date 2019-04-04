@@ -77,6 +77,48 @@ class Role
     }
 
     /**
+     * 管理员详情页获取角色列表
+     * @method [GET]
+     * @param [string] $token [Token]
+     */
+    public function getRoleListByAdminDetail()
+    {
+        $api = new Api;
+        $token = input('get.token');
+
+        if (!$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'select_admin');
+            if (!$isPermission) {
+                return $api->msg_405();
+            }
+
+            // $user = new UserModel;
+            // $userData = $user->where('number', $tokenData['data']->number)
+            //     ->find();
+            // $userLevel = $userData->roleLevel->level;
+
+            $role = new RoleModel;
+            $list = $role->field('id, name')
+                // ->where('level', 'between', [$userLevel + 1, 125])
+                ->where('level', 'between', [0, 125])
+                ->select();
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->msg_200($list);
+    }
+
+    /**
      * 获取角色详情
      * @method [GET]
      * @param [string] $roleId [角色ID]
