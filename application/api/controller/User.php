@@ -30,7 +30,7 @@ class User extends Controller
         $years = array();
         $currentYear = date('Y');
         for ($i = 0; $i < 7; $i++) {
-            $years[$i] = $currentYear - $i . "级";
+            $years[$i] = $currentYear - $i . '级';
         }
 
         return $api->msg_200($years);
@@ -216,7 +216,7 @@ class User extends Controller
                 ->where('number', $number)
                 ->find();
             if ($oldPw !== $user['password']) {
-                return $api->return_msg(401, "密码错误！");
+                return $api->return_msg(401, '密码错误！');
             };
             $result = $user->save([
                 'password' => $newPw
@@ -225,7 +225,7 @@ class User extends Controller
             return $api->msg_500();
         }
         if ($result) {
-            return $api->return_msg(200, "修改成功！请重新登录！");
+            return $api->return_msg(200, '修改成功！请重新登录！');
         } else {
             return $api->return_msg(401, '修改失败，数据未改动！');
         }
@@ -257,7 +257,7 @@ class User extends Controller
                 ->find();
             
             $intoBackstage = $user->intoBackstage = $user->role
-                ->authorityByName("into_backstage");
+                ->authorityByName('into_backstage');
             if ($intoBackstage) {
                 $user->intoBackstage = $intoBackstage->pivot->permission;
             }

@@ -36,7 +36,7 @@ class Admin
             return $tokenData;
         };
 
-        // try {
+        try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_admin');
             if (!$isPermission) {
                 return $api->msg_405();
@@ -45,7 +45,7 @@ class Admin
             $user = new UserModel;
             $list = array();
             if ($searchValue) {
-                if ($searchBasis == "0") {
+                if ($searchBasis == '0') {
                     $list = $user->field('id, realname, number, role_id, branch_id, sex, phone, email, address, description')
                         ->where('realname', 'like', '%' . $searchValue . '%')
                         ->where('branch_id', 'not null')
@@ -55,7 +55,7 @@ class Admin
                         $item->appendRelationAttr('branchName', ['branchName']);
                         $item->hidden(['branch_id', 'role_id']);
                     }
-                } elseif ($searchBasis == "6") {
+                } elseif ($searchBasis == '6') {
                     $branch = new BranchModel;
                     $branchList = $branch->where('name', 'like', '%' . $searchValue . '%')
                         ->select();
@@ -67,7 +67,7 @@ class Admin
                         $item->appendRelationAttr('roleName', ['roleName']);
                         $item->hidden(['branch_id', 'role_id', 'branch']);
                     }
-                } elseif ($searchBasis == "7") {
+                } elseif ($searchBasis == '7') {
                     $role = new RoleModel;
                     $roleList = $role->where('name', 'like', '%' . $searchValue . '%')
                         ->select();
@@ -100,9 +100,9 @@ class Admin
                 }
             }
             
-        // } catch (\Exception $th) {
-        //     return $api->msg_500();
-        // }
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
         
         return $api->msg_200([
             'count' => $count,
@@ -190,7 +190,7 @@ class Admin
             $changeUserLevel = $changedUser->roleLevel->level;
 
             if ($userLevel > $changeUserLevel) {
-                return $api->return_msg(401, '无法重置，权限不足！');
+                return $api->msg_405_not_enough();
             }
             
             $result = $changedUser->save(['password' => md5($changedUser['number'])], ['id' => $adminId]);
@@ -204,7 +204,7 @@ class Admin
         }
 
         if ($result) {
-            return $api->return_msg(200, "重置成功！", [
+            return $api->return_msg(200, '重置成功！', [
                 'changeByOwn' => $changeByOwn
             ]);
         } else {
@@ -259,16 +259,11 @@ class Admin
             $changedUserLevel = $changedUser->roleLevel->level;
 
             if ($userLevel >= $changedUserLevel) {
-                return $api->return_msg(401, '当前用户权限不足！');
+                return $api->msg_405_not_enough();
             }
 
-            if ($changedUser['number'] != $data['number']) {
-                $haveExisted = $user->where('number', $data['number'])
-                    ->where('branch_id', 'not null')
-                    ->find();
-                if ($haveExisted) {
-                    return $api->return_msg(401, '该职工号已存在！');
-                }
+            if ($data['number'] != $changedUser['number']) {
+                return $api->return_msg(401, '该职工号已存在！');
             }
 
             $result = $changedUser->allowField(['realname', 'number', 'sex', 'branch_id',
@@ -327,7 +322,7 @@ class Admin
                 ->value('level');
 
             if ($userLevel >= $roleLevel) {
-                return $api->return_msg(401, '权限不足，无法添加该角色');
+                return $api->msg_405_not_enough();
             }
 
             $haveExisted = $user->where('number', $data['number'])
@@ -392,7 +387,7 @@ class Admin
             foreach ($changedUsers as $changedUser) {
                 $changedUserLevel = $changedUser->roleLevel->level;
                 if ($userLevel >= $changedUserLevel) {
-                    return $api->return_msg(401, '部分角色权限等级大于或等于当前账户！');
+                    return $api->return_msg(405, '部分角色权限等级大于或等于当前账户！');
                 }
             }
 

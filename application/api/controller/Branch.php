@@ -110,6 +110,41 @@ class Branch
     }
 
     /**
+     * 角色详情页获取部门列表
+     * @method [GET]
+     * @param [string] $token [Token]
+     */
+    public function getBranchListByRoleDetail()
+    {
+        $api = new Api;
+        $token = input('get.token');
+
+        if (!$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        try {
+            $isPermission = $api->authority($tokenData['data']->number, 'select_role');
+            if (!$isPermission) {
+                return $api->msg_405();
+            }
+
+            $branch = new BranchModel;
+            $list = $branch->field('id, name')
+                ->select();
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->msg_200($list);
+    }
+
+    /**
      * 获取部门列表
      * @method [POST]
      * @param [string] $token [Token]
@@ -135,7 +170,7 @@ class Branch
             }
 
             $branch = new BranchModel;
-            $list = $branch->field('name as 学院名, website as 官网链接, 
+            $list = $branch->field('name as 部门名, website as 官网链接, 
                 operating_duty as 主要职能, description as 概述, level as 等级')
                 ->select();
         } catch (\Exception $th) {
@@ -337,7 +372,7 @@ class Branch
             $nameListOfDataBase = $branch->column('name');
             $allNameList = array_merge($nameListOfData, $nameListOfDataBase);
             if (count($allNameList) != count(array_unique($allNameList))) {
-                return $api->return_msg(401, '导入失败！部分部门已存在');
+                return $api->return_msg(401, '导入失败！列表内部分重复或部门已存在');
             };
 
             $result = $branch->allowField(true)

@@ -33,6 +33,12 @@ class User extends Model
         return $this->hasOne('College', 'id', 'college_id');
     }
 
+    protected function collegeName()
+    {
+        return $this->college()
+            ->field('name as collegeName');
+    }
+
     protected function collegeNameByGetAll()
     {
         return $this->college()

@@ -16,7 +16,7 @@ class Role extends Model
     }
 
     // 角色表与权限表关联
-    protected function authority()
+    public function authority()
     {
         return $this->belongsToMany('Authority', 'role_authority', 'authority_id', 'role_id');
     }
@@ -43,6 +43,17 @@ class Role extends Model
         return $this->user()
             ->field('id, realname, number, role_id, branch_id, sex, phone, email, address, description')
             ->where('branch_id', 'not null');
+    }
+
+    protected function branch()
+    {
+        return $this->hasOne('Branch', 'id', 'branch_id');
+    }
+
+    protected function branchName()
+    {
+        return $this->branch()
+            ->field('name as branchName');
     }
 }
 ?>

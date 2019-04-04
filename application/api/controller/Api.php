@@ -113,6 +113,11 @@ class Api
         return $this->return_msg(405, '当前用户无此权限！');
     }
 
+    public function msg_405_not_enough()
+    {
+        return $this->return_msg(405, '权限不足！');
+    }
+
     public function msg_500() 
     {
         return $this->return_msg(500, '系统出错，请稍后重试！');

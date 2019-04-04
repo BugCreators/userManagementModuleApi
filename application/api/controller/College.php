@@ -266,7 +266,7 @@ class College
                 ])->move(ROOT_PATH . 'public' . DS . 'static' . DS . 'collegeLogo');
             if($info){
                 $college = new CollegeModel;
-                $url = str_replace("\\", "/", DS . 'static' . DS . 'collegeLogo' . DS . $info->getSaveName());
+                $url = str_replace('\\', '/', DS . 'static' . DS . 'collegeLogo' . DS . $info->getSaveName());
                 $result = $college->save([
                     'logo' => $url
                 ], ['id' => $collegeId]);
@@ -316,7 +316,7 @@ class College
             }
 
             $college = new CollegeModel;
-            $result = $college->save(['logo' => ""], ['id' => $collegeId]);
+            $result = $college->save(['logo' => ''], ['id' => $collegeId]);
 
         } catch (\Exception $th) {
             return $api->msg_500();

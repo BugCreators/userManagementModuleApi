@@ -45,5 +45,13 @@ class College extends Model
             ->field('id, realname, number, class_id, sex, phone, email, address, description')
             ->where('role_id', 2);
     }
+
+    protected function teachers()
+    {
+        return $this->user()
+            ->field('id, realname, number, college_id, sex, phone, email, address, description')
+            ->where('role_id', '<>', 2)
+            ->where('college_id', 'not null');
+    }
 }
 ?>

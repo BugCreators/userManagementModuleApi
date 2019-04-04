@@ -134,7 +134,8 @@ class Student
             }
 
             $user = new UserModel;
-            if (!$data['college_id'] || $data['college_id'] == '-1') {
+            $list = array();
+            if (!$data['college_id'] || $data['college_id'] == '-1') {  // 全部
                 $list = $user->field('number as 学号, realname as 姓名, sex as 性别,class_id, college_id,
                     phone as 手机号码, address as 地址, email as 邮箱, description as 个人描述')
                     ->where('role_id', 2)
@@ -144,7 +145,7 @@ class Student
                     $item->appendRelationAttr('collegeNameByGetAll', ['学院名']);
                     $item->hidden(['class_id', 'college_id']);
                 }
-            } elseif (!$data['major_id'] || $data['major_id'] == '-1') {
+            } elseif (!$data['major_id'] || $data['major_id'] == '-1') { // 根据学院
                 $list = $user->field('number as 学号, realname as 姓名, sex as 性别,class_id, college_id,
                     phone as 手机号码, address as 地址, email as 邮箱, description as 个人描述')
                     ->where('role_id', 2)
@@ -155,12 +156,12 @@ class Student
                     $item->appendRelationAttr('collegeNameByGetAll', ['学院名']);
                     $item->hidden(['class_id', 'college_id']);
                 }
-            } elseif (!$data['class_id'] || $data['class_id'] == '-1') {
+            } elseif (!$data['class_id'] || $data['class_id'] == '-1') { // 根据专业
                 $major = new MajorModel;
                 $majorData = $major->where('id', $data['major_id'])
                     ->find();
                 $classList = $majorData->vclass;
-                $list = array();
+                
                 foreach ($classList as $classItem) {
                     $list = array_merge($list, $classItem->getStudentByGetAll);
                 }
@@ -170,6 +171,16 @@ class Student
                         $studentItem->appendRelationAttr('collegeNameByGetAll', ['学院名']);
                         $studentItem->hidden(['class_id', 'college_id', 'vclass']);
                     }
+                }
+            } elseif ($data['class_id']) { // 根据班级
+                $class = new ClassModel;
+                $classData = $class->where('id', $data['class_id'])
+                    ->find();
+                $list = $classData->getStudentByGetAll;
+                foreach ($list as $item) {
+                    $item['班级名'] = $item->vclass->grade . $item->vclass->name;
+                    $item->appendRelationAttr('collegeNameByGetAll', ['学院名']);
+                    $item->hidden(['class_id', 'college_id', 'vclass']);
                 }
             }
         } catch (\Exception $th) {
@@ -259,7 +270,7 @@ class Student
             return $api->msg_500();
         }
         if ($result) {
-            return $api->return_msg(200, "重置成功！");
+            return $api->return_msg(200, '重置成功！');
         } else {
             return $api->return_msg(401, '重置失败，数据未改动！');
         }
@@ -305,14 +316,11 @@ class Student
 
             $user = new UserModel;
 
-            $userId = $user->where('number', $tokenData['data']->number)
+            $userId = $user->where('number', $data['number'])
+                ->where('role_id', 2)
                 ->value('id');
-            if ($userId != $data['id']) {
-                $haveExisted = $user->where('number', $data['number'])
-                    ->find();
-                if($haveExisted) {
-                    return $api->return_msg(401, '学号已存在！');
-                }
+            if ($data['id'] != $userId) {
+                return $api->return_msg(401, '学号已存在！');
             };
 
             $result = $user->allowField(['realname', 'number', 'sex', 'college_id',
@@ -369,6 +377,7 @@ class Student
 
             $user = new UserModel;
             $haveExisted = $user->where('number', $data['number'])
+                ->where('role_id', 2)
                 ->find();
             if($haveExisted) {
                 return $api->return_msg(401, '学号已存在！');
@@ -397,7 +406,7 @@ class Student
      * @param [string] $data['college_id'] [学院ID]
      * @param [string] $data['major_id'] [专业ID]
      * @param [string] $data['class_Id'] [班级ID]
-     * @param [array] $studentList [学院列表]
+     * @param [array] $studentList [学生列表]
      * @param [string] $token [Token]
      */
     public function importStudentList()
@@ -467,7 +476,7 @@ class Student
     /**
      * 删除学生
      * @method [POST]
-     * @param [string] $studentsId [学院ID]
+     * @param [string] $studentsId [学生ID]
      * @param [string] $token [Token]
      */
     public function deleteStudent()

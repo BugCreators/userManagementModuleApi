@@ -14,7 +14,7 @@ class Role
      * @method [POST]
      * @param [int] $pageSize []
      * @param [int] $pageIndex []
-     * @param [string] $searchBasis [搜索依据] [0:按角色名搜索] [1:按权限等级搜索]
+     * @param [string] $searchBasis [搜索依据] [0:按角色名搜索] [4:按权限等级搜索]
      * @param [string] $searchValue [搜索值]
      * @param [string] $token [Token]
      */
@@ -43,11 +43,11 @@ class Role
             }
 
             $role = new RoleModel;
-            if ($searchValue) {
-                if ($searchBasis == "0") {
+            if ($searchValue != "") {
+                if ($searchBasis == '0') {
                     $list = $role->where('name', 'like', '%' . $searchValue . '%')
                         ->select();
-                } elseif ($searchBasis == "4") {
+                } elseif ($searchBasis == '4') {
                     $list = $role->where('level', $searchValue)
                         ->select();
                 } else {
@@ -61,11 +61,12 @@ class Role
                     ->limit($pageSize * ($pageIndex - 1), $pageSize)
                     ->order('id')
                     ->select();
-                foreach($list as $item) {
+            }
+            foreach($list as $item) {
                     $item->permission;
+                    $item->appendRelationAttr('branchName', ['branchName']);
                     $item->hidden(['permission.pivot']);
                 }
-            }
         } catch (\Exception $th) {
             return $api->msg_500();
         }
@@ -77,16 +78,18 @@ class Role
     }
 
     /**
-     * 管理员详情页获取角色列表
+     * 根据部门ID获取角色列表
      * @method [GET]
+     * @param [stirng] $branchId [部门ID]
      * @param [string] $token [Token]
      */
-    public function getRoleListByAdminDetail()
+    public function getRoleListByBranchId()
     {
         $api = new Api;
+        $branchId = input('get.branchId');
         $token = input('get.token');
 
-        if (!$token) {
+        if ($branchId == "" || !$token) {
             return $api->msg_401();
         }
 
@@ -96,7 +99,7 @@ class Role
         };
 
         try {
-            $isPermission = $api->authority($tokenData['data']->number, 'select_admin');
+            $isPermission = $api->authority($tokenData['data']->number, 'update_admin');
             if (!$isPermission) {
                 return $api->msg_405();
             }
@@ -109,7 +112,7 @@ class Role
             $role = new RoleModel;
             $list = $role->field('id, name')
                 // ->where('level', 'between', [$userLevel + 1, 125])
-                ->where('level', 'between', [0, 125])
+                ->where('branch_id', $branchId)
                 ->select();
         } catch (\Exception $th) {
             return $api->msg_500();
@@ -192,6 +195,7 @@ class Role
      * @param [string] $data['id'] [角色ID]
      * @param [string] $data['name'] [角色名]
      * @param [string] $data['description'] [角色介绍]
+     * @param [string] $data['branch_id'] [权限等级]
      * @param [string] $data['level'] [权限等级]
      * @param [string] $token [Token]
      */
@@ -221,29 +225,29 @@ class Role
                 ->find();
             $userRoleLevel = $userData->role->value('level');
             if ($userRoleLevel >= $data['level']) {
-                return $api->return_msg(401, '无法修改大于或等于当前用户的权限等级！');
+                return $api->return_msg(405, '无法修改大于或等于当前用户的权限等级！');
             }
 
             $role = new RoleModel;
             $changedRoleLevel = $role->where('id', $data['id'])->value('level');
             if ($userRoleLevel >= $changedRoleLevel) {
-                return $api->return_msg(401, '无法修改大于或等于当前用户权限等级的角色！');
+                return $api->msg_405_not_enough();
             }
             
             $roleName = $role->where('id', $data['id'])
                 ->value('name');
             if ($roleName != $data['name']) {
-                $haveExisted = $role->where('name', $data['name'])
-                    ->find();
-                if ($haveExisted) {
-                    return $api->return_msg(401, '该角色已存在！');
+                $branchId = $role->where('name', $data['name'])
+                    ->value('branch_Id');
+                if ($branchId == $data['branch_id']) {
+                    return $api->return_msg(401, '已有相同的角色存在！');
                 }
             }
 
             $roleData = $role->where('id', $data['id'])
                 ->find();
             $authority = $roleData->authority;
-            $roleData->allowField(['name', 'level', 'description'])
+            $roleData->allowField(['name', 'level', 'branch_id', 'description'])
                 ->save($data);
 
             $authorityIds = array();
@@ -312,6 +316,7 @@ class Role
      * @param [array] $data [角色详情]
      * @param [string] $data['name'] [角色名]
      * @param [string] $data['description'] [角色介绍]
+     * @param [stirng] $data['branch_id] [部门ID]
      * @param [string] $data['level'] [权限登记]
      * @param [array] $moduleList [权限列表]
      * @param [string] $token [Token]
@@ -344,14 +349,16 @@ class Role
                 ->find();
             $userRoleLevel = $userData->role->value('level');
             if ($userRoleLevel >= $data['level']) {
-                return $api->return_msg(401, '无法添加大于或等于当前用户的权限等级！');
+                return $api->return_msg(405, '无法添加大于或等于当前用户的权限等级！');
             }
 
             $role = new RoleModel;
-            $haveExisted = $role->where('name', $data['name'])
+            $isExist = $role->where('name', $data['name'])
                 ->find();
-            if($haveExisted) {
-                return $api->return_msg(401, '该角色名已存在！请输入其它名字');
+            if ($isExist) {
+                if ($isExist['branch_id'] == $data['branch_id']) {
+                    return $api->return_msg(401, '已有相同的角色存在！');
+                }
             }
 
             $result = $role->allowField(true)
