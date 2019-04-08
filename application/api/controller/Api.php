@@ -2,6 +2,7 @@
 namespace app\api\controller;
 
 use \Firebase\JWT\JWT;
+
 use app\api\model\User as UserModel;
 
 class Api
@@ -10,7 +11,7 @@ class Api
      * 签发 Token
      * @param  [array] $data [用户信息]
      */
-    public function lssue($number, $time)
+    public function lssue($number, $loginTime)
     {
         if (!$number) {
             return $this->msg_401();
@@ -23,7 +24,7 @@ class Api
            	'exp' => $time + 3600 * 10,      //过期时间,这里设置10个小时
             'data' => [                      //自定义信息，不要定义敏感信息
                 'number' => $number,
-                'last_login_time' => $time
+                'last_login_time' => $loginTime
             ]
         ];
         return JWT::encode($token, $key);    //输出Token
