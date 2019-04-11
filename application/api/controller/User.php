@@ -155,7 +155,7 @@ class User extends Controller
         $description = input('post.description');
         $token = input('post.token');
 
-        if (!$number || !$email || $sex == '' || !$address || !$description || !$token) {
+        if (!$number || !$token) {
             return $api->msg_401();
         }
 
