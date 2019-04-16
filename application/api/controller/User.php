@@ -16,7 +16,9 @@ class User extends Controller
     public function getSysSetting()
     {
         $api = new Api;
-        $data = ['schoolName' => '韶关学院'];
+        $fileName = '../public/static/sysSetting.json';
+        $string = file_get_contents($fileName);
+        $data = json_decode($string);
         return $api->msg_200($data);
     }
 

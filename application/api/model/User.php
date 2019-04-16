@@ -16,6 +16,12 @@ class User extends Model
         return request()->ip();
     }
 
+    // public function getSexAttr($value)
+    // {
+    //     $sex = [0 => '女', 1 => '男'];
+    //     return $sex[$value];
+    // }
+
     protected function vclass()
     {
         return $this->hasOne('VClass', 'id', 'class_id')
