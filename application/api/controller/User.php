@@ -9,19 +9,6 @@ use think\Controller;
 
 class User extends Controller
 {
-     /**
-     * 获取系统设置
-     * @method [GET]
-     */
-    public function getSysSetting()
-    {
-        $api = new Api;
-        $fileName = '../public/static/sysSetting.json';
-        $string = file_get_contents($fileName);
-        $data = json_decode($string);
-        return $api->msg_200($data);
-    }
-
     /**
      * 获取年级年份
      * @method [GET]
