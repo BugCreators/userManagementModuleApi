@@ -3,15 +3,15 @@
     "schoolAddress": "中国.广东省.韶关市浈江区大学路288号",
     "carousel": [
         {
-            "src": "/static/carousel/pic1.jpg",
+            "url": "/static/carousel/pic1.jpg",
             "href": ""
         },
         {
-            "src": "/static/carousel/pic2.jpg",
+            "url": "/static/carousel/pic2.jpg",
             "href": ""
         },
         {
-            "src": "/static/carousel/pic3.jpg",
+            "url": "/static/carousel/pic3.jpg",
             "href": ""
         }
     ],
