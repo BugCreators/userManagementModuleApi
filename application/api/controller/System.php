@@ -19,18 +19,22 @@ class System
     }
 
     /**
-     * 修改学校名字
+     * 修改学校信息
      * @method [GET]
-     * @param [string] $schoolName [学校名称]
+     * @param [string] $schoolInfo [学校信息]
+     * @param [string] $schoolInfo['name'] [学校名字]
+     * @param [string] $schoolInfo['address'] [学校地址]
      * @param [token] $token [Token]
      */
-    public function changeSchoolName()
+    public function changeSchoolInfo()
     {
         $api = new Api;
-        $schoolName = input('get.data');
+        $schoolInfo = input('get.schoolInfo');
         $token = input('get.token');
 
-        if (!$schoolName || !$token) {
+        $schoolInfo = json_decode($schoolInfo);
+
+        if (!$schoolInfo->name || !$token) {
             return $api->msg_401();
         }
 
@@ -48,7 +52,8 @@ class System
             $path = config('systemJson');
             $string = file_get_contents($path);
             $data = json_decode($string);
-            $data->schoolName = $schoolName;
+            $data->schoolInfo->name = $schoolInfo->name;
+            $data->schoolInfo->address = $schoolInfo->address;
 
             $data->operator = $tokenData['data']->number;
             $data->update_time = date('Y-m-d H:i:s', time());
@@ -64,18 +69,22 @@ class System
     }
 
     /**
-     * 修改学校地址
+     * 添加系统链接
      * @method [GET]
-     * @param [string] $schoolAddress [学校地址]
-     * @param [token] $token [Token]
+     * @param [string] $system [系统信息]
+     * @param [string] $system['name] [系统名]
+     * @param [string] $system['website'] [系统链接]
+     * @param [string] $token [Token]
      */
-    public function changeSchoolAddress()
+    public function addSystemItem()
     {
         $api = new Api;
-        $schoolAddress = input('get.data');
+        $system = input('get.system');
         $token = input('get.token');
 
-        if (!$schoolAddress || !$token) {
+        $system = json_decode($system);
+
+        if (!$system->name || !$system->website || !$token) {
             return $api->msg_401();
         }
 
@@ -93,7 +102,68 @@ class System
             $path = config('systemJson');
             $string = file_get_contents($path);
             $data = json_decode($string);
-            $data->schoolAddress = $schoolAddress;
+            $systemList = $data->systemWebsite;
+
+            $systemItem = [
+                "index" => (string)time(),
+                "name" => $system->name,
+                'website' => $system->website
+            ];
+
+            $systemList[] = json_decode(json_encode($systemItem));
+            $data->systemWebsite = $systemList;
+            
+            $data->operator = $tokenData['data']->number;
+            $data->update_time = date('Y-m-d H:i:s', time());
+
+            $data_json = json_encode($data);
+            file_put_contents('./static/setting-back-up/setting' . time() . '.json', $data_json);
+            file_put_contents('./static/sysSetting.json', $data_json);
+
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->return_msg(200, '添加成功！');
+    }
+
+    /**
+     * 删除系统链接
+     * @method [GET]
+     * @param [string] $index [系统Index]
+     * @param [string] $token [Token]
+     */
+    public function deleteSystemItem()
+    {
+        $api = new Api;
+        $index = input('get.index');
+        $token = input('get.token');
+
+        if (!$index || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        $isPermission = $api->authority($tokenData['data']->number, 'update_system_setting');
+        if (!$isPermission) {
+            return $api->msg_405();
+        }
+
+        try {
+            $path = config('systemJson');
+            $string = file_get_contents($path);
+            $data = json_decode($string);
+            
+            foreach($data->systemWebsite as $key => $item) {
+                if ($item->index == $index) {
+                    array_splice($data->systemWebsite, $key, 1); 
+                    break;
+                }
+            }
 
             $data->operator = $tokenData['data']->number;
             $data->update_time = date('Y-m-d H:i:s', time());
@@ -101,6 +171,65 @@ class System
             $data_json = json_encode($data);
             file_put_contents('./static/setting-back-up/setting' . time() . '.json', $data_json);
             file_put_contents('./static/sysSetting.json', $data_json);
+
+        } catch (\Exception $th) {
+            return $api->msg_500();
+        }
+
+        return $api->return_msg(200, '删除成功！');
+    }
+
+    /**
+     * 编辑系统链接
+     * @method [GET]
+     * @param [string] $index [系统Index]
+     * @param [string] $system [系统信息]
+     * @param [string] $system['name] [系统名]
+     * @param [string] $system['website'] [系统链接]
+     * @param [string] $token [Token]
+     */
+    public function changeSystemItem()
+    {
+        $api = new Api;
+        $system = input('get.system');
+        $token = input('get.token');
+
+        $system = json_decode($system);
+
+        if (!$system->index || !$system->name || !$system->website || !$token) {
+            return $api->msg_401();
+        }
+
+        $tokenData = $api->verification($token);
+        if ($tokenData['code'] !== 200) {
+            return $tokenData;
+        };
+
+        $isPermission = $api->authority($tokenData['data']->number, 'update_system_setting');
+        if (!$isPermission) {
+            return $api->msg_405();
+        }
+
+        try {
+            $path = config('systemJson');
+            $string = file_get_contents($path);
+            $data = json_decode($string);
+            
+            foreach($data->systemWebsite as $item) {
+                if ($system->index == $item->index) {
+                    $item->name = $system->name;
+                    $item->website = $system->website;
+                    break;
+                }
+            }
+
+            $data->operator = $tokenData['data']->number;
+            $data->update_time = date('Y-m-d H:i:s', time());
+
+            $data_json = json_encode($data);
+            file_put_contents('./static/setting-back-up/setting' . time() . '.json', $data_json);
+            file_put_contents('./static/sysSetting.json', $data_json);
+
         } catch (\Exception $th) {
             return $api->msg_500();
         }
