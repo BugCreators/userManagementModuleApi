@@ -136,7 +136,10 @@ class Vclass
             $list = array();
             $i = 0;
             foreach ($classList as $classItem) {
-                $collegeName = json_decode(json_encode($classItem->major->collegeNameByGetAll), true);
+                $collegeName = $classItem->major->collegeNameByGetAll;
+                unset($collegeName->id);
+                unset($collegeName->name);
+                $collegeName = json_decode(json_encode($collegeName), true);
                 $classItem->hidden(['major', 'major_id']);
                 $classItem->appendRelationAttr('majorNameByGetAll', ['专业名']);
                 $temp = array_merge(json_decode(json_encode($classItem), true), $collegeName);

@@ -113,7 +113,7 @@ class Major
             return $tokenData;
         };
 
-        try {
+        // try {
             $isPermission = $api->authority($tokenData['data']->number, 'select_major');
             if (!$isPermission) {
                 return $api->msg_405();
@@ -127,11 +127,11 @@ class Major
             foreach($list as $item) {
                 $item->hidden(['college_id', 'department_id']);
                 $item->appendRelationAttr('departmentNameByGetAll', ['教学系']);
-                $item->appendRelationAttr('collegeNameByGetAll', ['学院名']);
+                $item->appendRelationAttr('collegeNameByGetAll', ['学院']);
             }
-        } catch (\Exception $th) {
-            return $api->msg_500();
-        }
+        // } catch (\Exception $th) {
+        //     return $api->msg_500();
+        // }
 
         return $api->msg_200($list);
     }
